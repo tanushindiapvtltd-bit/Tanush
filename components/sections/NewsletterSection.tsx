@@ -15,7 +15,7 @@ export default function NewsletterSection() {
 
     return (
         <section className="w-full bg-white py-16 md:py-20">
-            <div className="max-w-2xl mx-auto px-6 text-center flex flex-col items-center gap-5">
+            <div className="w-full max-w-2xl mx-auto px-6 text-center flex flex-col items-center gap-5">
                 {/* Envelope icon */}
                 <div className="w-10 h-10 rounded-full border border-[#C9A84C] flex items-center justify-center">
                     <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#C9A84C" strokeWidth={1.6}>

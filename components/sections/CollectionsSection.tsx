@@ -5,7 +5,7 @@ import { collections } from "@/lib/data";
 export default function CollectionsSection() {
     return (
         <section className="w-full bg-[#FAF9F6] py-16 md:py-20">
-            <div className="max-w-7xl mx-auto px-6">
+            <div className="w-full max-w-7xl mx-auto px-6">
                 {/* Heading */}
                 <div className="text-center mb-10">
                     <h2 className="font-cormorant text-[2.4rem] md:text-[3rem] text-[#1A1A1A] leading-tight">

@@ -1,30 +1,29 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { navLinks } from "@/lib/data";
 
 export default function Navbar() {
+    const [menuOpen, setMenuOpen] = useState(false);
+
     return (
         <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm border-b border-[#e8e3db]">
-            <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
+            <div className="w-full max-w-7xl mx-auto flex items-center justify-between px-6 py-3">
                 {/* Logo */}
                 <Link href="/" className="flex items-center gap-2 no-underline">
-                    <span className="text-[#C9A84C] text-xl" aria-hidden="true">
-                        {/* Crown SVG */}
-                        <svg width="22" height="18" viewBox="0 0 22 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path
-                                d="M1 17L3.5 7L8 12L11 2L14 12L18.5 7L21 17H1Z"
-                                fill="#C9A84C"
-                                stroke="#C9A84C"
-                                strokeWidth="1.2"
-                                strokeLinejoin="round"
-                            />
-                        </svg>
-                    </span>
-                    <span className="font-cormorant font-semibold text-[1.25rem] text-[#1A1A1A] tracking-wide leading-none">
-                        Luxe Bangles
-                    </span>
+                    <Image
+                        src="/tanush-logo.png"
+                        alt="Tanush logo"
+                        width={160}
+                        height={42}
+                        className="object-contain h-[42px] w-auto"
+                        priority
+                    />
                 </Link>
 
-                {/* Centre Nav */}
+                {/* Centre Nav — desktop only */}
                 <nav className="hidden md:flex items-center gap-8" aria-label="Main navigation">
                     {navLinks.map((link) => (
                         <Link
@@ -66,8 +65,45 @@ export default function Navbar() {
                             <circle cx="12" cy="7" r="4" />
                         </svg>
                     </button>
+
+                    {/* Hamburger — mobile only */}
+                    <button
+                        aria-label="Toggle menu"
+                        aria-expanded={menuOpen}
+                        onClick={() => setMenuOpen(!menuOpen)}
+                        className="md:hidden text-[#4a4a4a] hover:text-[#C9A84C] transition-colors cursor-pointer"
+                    >
+                        {menuOpen ? (
+                            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                                <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        ) : (
+                            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                                <path d="M3 12h18M3 6h18M3 18h18" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        )}
+                    </button>
                 </div>
             </div>
+
+            {/* Mobile nav drawer */}
+            {menuOpen && (
+                <nav
+                    className="md:hidden border-t border-[#e8e3db] bg-white/95 backdrop-blur-sm px-6 py-5 flex flex-col gap-4"
+                    aria-label="Mobile navigation"
+                >
+                    {navLinks.map((link) => (
+                        <Link
+                            key={link.href}
+                            href={link.href}
+                            onClick={() => setMenuOpen(false)}
+                            className="text-sm text-[#4a4a4a] hover:text-[#C9A84C] transition-colors duration-200 tracking-wide no-underline py-1"
+                        >
+                            {link.label}
+                        </Link>
+                    ))}
+                </nav>
+            )}
         </header>
     );
 }

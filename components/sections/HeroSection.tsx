@@ -4,10 +4,10 @@ import Button from "@/components/ui/Button";
 export default function HeroSection() {
     return (
         <section className="w-full bg-[#FAF9F6] overflow-hidden">
-            <div className="max-w-7xl mx-auto px-6 py-16 md:py-24 flex flex-col-reverse md:flex-row items-center gap-12">
+            <div className="w-full max-w-7xl mx-auto px-6 py-16 md:py-24 flex flex-col-reverse md:flex-row items-center gap-12">
                 {/* ── Left: bangle visual ───────────────────────────────────── */}
-                <div className="flex-1 flex items-center justify-center">
-                    <div className="relative w-[300px] h-[300px] md:w-[420px] md:h-[420px]">
+                <div className="flex-1 flex items-center justify-center w-full">
+                    <div className="relative w-full max-w-[300px] aspect-square md:w-[420px] md:h-[420px] md:max-w-none">
                         {/* Soft glowing circle background */}
                         <div
                             className="absolute inset-0 rounded-full"
@@ -21,7 +21,7 @@ export default function HeroSection() {
                         <div className="absolute inset-8 rounded-full overflow-hidden flex items-center justify-center">
                             <Image
                                 src="/hero-bangle.png"
-                                alt="Gold diamond bangle — Luxe Bangles hero image"
+                                alt="Gold diamond bangle — Tanush hero image"
                                 fill
                                 sizes="(max-width: 768px) 300px, 420px"
                                 className="object-contain drop-shadow-2xl"
@@ -29,18 +29,12 @@ export default function HeroSection() {
                             />
                         </div>
 
-                        {/* Drag to rotate label */}
-                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 text-[11px] text-[#9e9e9e] tracking-widest uppercase whitespace-nowrap">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6}>
-                                <path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                            Drag to rotate
-                        </div>
+
                     </div>
                 </div>
 
                 {/* ── Right: copy ───────────────────────────────────────────── */}
-                <div className="flex-1 flex flex-col gap-5 max-w-md">
+                <div className="flex-1 flex flex-col gap-5 items-center text-center md:items-start md:text-left md:max-w-md w-full">
                     {/* Eyebrow */}
                     <p className="text-xs font-semibold tracking-[0.2em] uppercase text-[#C9A84C]">
                         New Collection 2024
@@ -60,7 +54,7 @@ export default function HeroSection() {
                     </p>
 
                     {/* CTAs */}
-                    <div className="flex items-center gap-4 flex-wrap mt-2">
+                    <div className="flex items-center gap-4 flex-wrap mt-2 justify-center md:justify-start">
                         <Button variant="primary" className="gap-2">
                             Shop Collection
                             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

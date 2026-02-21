@@ -34,12 +34,12 @@ function TrustIcon({ type }: { type: string }) {
 export default function TrustBanner() {
     return (
         <section className="w-full bg-white border-y border-[#e8e3db]">
-            <div className="max-w-7xl mx-auto px-6 py-6">
+            <div className="w-full max-w-7xl mx-auto px-6 py-6">
                 <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[#e8e3db]">
                     {trustItems.map((item) => (
                         <div
                             key={item.title}
-                            className="flex items-center gap-4 px-6 py-4 first:pl-0 last:pr-0"
+                            className="flex items-center gap-4 px-6 py-4 justify-center sm:justify-start sm:first:pl-0 sm:last:pr-0"
                         >
                             <div className="flex-shrink-0">
                                 <TrustIcon type={item.icon} />

@@ -17,16 +17,13 @@
 }
 
 /* ── Base Reset ────────────────────────────────────────────────────────────── */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+/* Note: Tailwind v4's preflight handles box-sizing, margin, and padding reset.
+   A custom * { margin: 0 } here would override Tailwind utilities like mx-auto. */
 
 html {
   scroll-behavior: smooth;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -35,6 +32,8 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 /* ── Utility: no-underline ─────────────────────────────────────────────────── */

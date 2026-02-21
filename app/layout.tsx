@@ -17,10 +17,10 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "Luxe Bangles — Handcrafted Jewellery for the Modern Muse",
+  title: "Tanush — Handcrafted Jewellery for the Modern Muse",
   description:
     "Discover our exclusive collection of timeless bangles — from diamond jewellery to bridal sets. Free global shipping. Certified quality.",
-  keywords: ["bangles", "gold jewellery", "bridal bangles", "diamond bangles", "luxury jewellery"],
+  keywords: ["bangles", "gold jewellery", "bridal bangles", "diamond bangles", "luxury jewellery", "tanush"],
 };
 
 export default function RootLayout({
@@ -28,7 +28,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${inter.variable} ${cormorant.variable}`}>
-      <body className="antialiased bg-[#FAF9F6] text-[#1A1A1A]">
+      <body className="antialiased bg-[#FAF9F6] text-[#1A1A1A] w-full overflow-x-hidden">
         {children}
       </body>
     </html>
