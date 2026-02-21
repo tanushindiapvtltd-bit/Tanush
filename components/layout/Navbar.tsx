@@ -16,9 +16,9 @@ export default function Navbar() {
                     <Image
                         src="/tanush-logo.png"
                         alt="Tanush logo"
-                        width={160}
-                        height={42}
-                        className="object-contain h-[42px] w-auto"
+                        width={240}
+                        height={60}
+                        className="object-contain h-[60px] w-auto"
                         priority
                     />
                 </Link>
