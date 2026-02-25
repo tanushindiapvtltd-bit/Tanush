@@ -53,6 +53,30 @@ export const collections: Collection[] = [
         alt: "Premium gift box with golden bangles",
         href: "/collections/everyday",
     },
+    {
+        id: 4,
+        tag: "OCCASION",
+        title: "Festive",
+        image: "/Festive/6.png",
+        alt: "Festive Jewellery",
+        href: "/collections/festive",
+    },
+    {
+        id: 5,
+        tag: "OCCASION",
+        title: "Party",
+        image: "/Oxidised/8.png",
+        alt: "Party Jewellery",
+        href: "/collections/party",
+    },
+    {
+        id: 6,
+        tag: "STYLE",
+        title: "Office Wear",
+        image: "/Minimal-Daily wear/7.png",
+        alt: "Minimal Daily Wear",
+        href: "/collections/office-wear",
+    },
 ];
 
 // ─── Footer Columns ────────────────────────────────────────────────────────

@@ -12,7 +12,7 @@ export default function Footer() {
                     <div className="flex flex-col gap-4 items-center text-center md:items-start md:text-left">
                         <div className="flex items-center gap-2">
                             <Image
-                                src="/tanush-logo.png"
+                                src="/tanush-logo-transparent.png"
                                 alt="Tanush logo"
                                 width={140}
                                 height={46}

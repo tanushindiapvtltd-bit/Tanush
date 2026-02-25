@@ -37,7 +37,7 @@ export default function HeroSection() {
                 <div className="flex-1 flex flex-col gap-5 items-center text-center md:items-start md:text-left md:max-w-md w-full">
                     {/* Eyebrow */}
                     <p className="text-xs font-semibold tracking-[0.2em] uppercase text-[#C9A84C]">
-                        New Collection 2024
+                        New Collection 2026
                     </p>
 
                     {/* Headline */}

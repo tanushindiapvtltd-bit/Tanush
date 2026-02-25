@@ -14,7 +14,7 @@ export default function Navbar() {
                 {/* Logo */}
                 <Link href="/" className="flex items-center gap-2 no-underline">
                     <Image
-                        src="/tanush-logo.png"
+                        src="/tanush-logo-transparent.png"
                         alt="Tanush logo"
                         width={240}
                         height={60}
