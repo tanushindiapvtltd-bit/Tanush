@@ -113,7 +113,7 @@ function SignInForm() {
                             Password
                         </label>
                         <Link
-                            href="#"
+                            href="/forgot-password"
                             className="text-xs font-semibold text-[#c9a84c] hover:text-[#b0923e] tracking-wide transition-colors uppercase"
                         >
                             FORGOT PASSWORD?

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { checkRateLimit } from "@/lib/rateLimiter";
+import { sendWelcomeEmail } from "@/lib/email";
 import bcrypt from "bcryptjs";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -95,6 +96,11 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Send welcome email (fire-and-forget — don't block the response)
+    sendWelcomeEmail(data.email, data.name).catch((err) =>
+      console.error("[Register] Welcome email failed:", err)
+    );
 
     return NextResponse.json(
       { message: "Account created successfully.", user: data },

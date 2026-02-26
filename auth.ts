@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { createClient } from "@supabase/supabase-js";
 import bcrypt from "bcryptjs";
+import { sendLoginNotificationEmail, sendWelcomeEmail } from "@/lib/email";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -51,6 +52,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!passwordMatch) return null;
 
+        // Fire-and-forget login notification
+        sendLoginNotificationEmail(user.email, user.name).catch((err) =>
+          console.error("[Auth] Login email failed:", err)
+        );
+
         return { id: user.id, email: user.email, name: user.name };
       },
     }),
@@ -79,11 +85,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       if (!existing) {
         // First-time Google sign-in → create account automatically
+        const userName = user.name ?? email.split("@")[0];
         const { error } = await supabaseAdmin.from("users").insert([
           {
-            name: user.name ?? email.split("@")[0],
+            name: userName,
             email,
-            password: GOOGLE_OAUTH_PLACEHOLDER, // placeholder — no null constraint issue
+            password: GOOGLE_OAUTH_PLACEHOLDER,
             newsletter: false,
           },
         ]);
@@ -94,6 +101,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         console.log("[Auth] New Google user auto-registered:", email);
+
+        // Send welcome email to new Google users
+        sendWelcomeEmail(email, userName).catch((err) =>
+          console.error("[Auth] Google welcome email failed:", err)
+        );
+      } else {
+        // Returning Google user — send login notification
+        sendLoginNotificationEmail(email, user.name ?? email).catch((err) =>
+          console.error("[Auth] Google login email failed:", err)
+        );
       }
 
       return true; // allow sign-in → NextAuth creates session → redirects to callbackUrl (/)
