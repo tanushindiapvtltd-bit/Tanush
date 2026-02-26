@@ -13,6 +13,18 @@ function SignInForm() {
     const registered = searchParams.get("registered");
     const callbackUrl = searchParams.get("callbackUrl") ?? "/";
 
+    // Map NextAuth error codes (passed via ?error=) to friendly messages
+    const ERROR_MESSAGES: Record<string, string> = {
+        CredentialsSignin: "Invalid email or password. Please try again.",
+        AccessDenied: "No account found with this email. Please sign up first.",
+        OAuthAccountNotLinked: "This email is already registered with a different sign-in method.",
+        Default: "Something went wrong. Please try again.",
+    };
+    const urlError = searchParams.get("error");
+    const urlErrorMessage = urlError
+        ? (ERROR_MESSAGES[urlError] ?? ERROR_MESSAGES.Default)
+        : null;
+
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -71,10 +83,10 @@ function SignInForm() {
                 </div>
             )}
 
-            {/* Error message */}
-            {error && (
+            {/* Error message — from form state or from NextAuth ?error= redirect */}
+            {(error || urlErrorMessage) && (
                 <div className="mb-6 px-4 py-3 bg-red-50 border border-red-200 rounded text-sm text-red-600 text-center">
-                    {error}
+                    {error || urlErrorMessage}
                 </div>
             )}
 
