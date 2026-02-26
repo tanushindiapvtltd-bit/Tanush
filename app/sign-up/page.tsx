@@ -1,7 +1,59 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
 export default function SignUpPage() {
+    const router = useRouter();
+
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [newsletter, setNewsletter] = useState(false);
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError("");
+
+        if (password !== confirmPassword) {
+            setError("Passwords do not match.");
+            setLoading(false);
+            return;
+        }
+
+        if (password.length < 8) {
+            setError("Password must be at least 8 characters.");
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const res = await fetch("/api/auth/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, email, password, newsletter }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                setError(data.error || "Failed to create account.");
+            } else {
+                router.push("/sign-in?registered=true");
+            }
+        } catch {
+            setError("Something went wrong. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="flex min-h-screen w-full bg-white font-inter">
             {/* Left side banner - hidden on mobile, 50% width on large screens */}
@@ -54,8 +106,15 @@ export default function SignUpPage() {
                         <p className="text-[#6b6b6b] text-sm font-light">Join our exclusive world of timeless elegance.</p>
                     </div>
 
+                    {/* Error message */}
+                    {error && (
+                        <div className="mb-6 px-4 py-3 bg-red-50 border border-red-200 rounded text-sm text-red-600">
+                            {error}
+                        </div>
+                    )}
+
                     {/* Form */}
-                    <form className="space-y-6">
+                    <form className="space-y-6" onSubmit={handleSubmit}>
                         <div>
                             <label
                                 htmlFor="fullName"
@@ -67,6 +126,9 @@ export default function SignUpPage() {
                                 id="fullName"
                                 type="text"
                                 placeholder="Julianna Vielle"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                required
                                 className="w-full px-4 py-3.5 bg-white border border-[#e8e3db] rounded text-[15px] text-[#1a1a1a] placeholder:text-[#ccc] focus:outline-none focus:border-[#c9a84c] focus:ring-1 focus:ring-[#c9a84c] transition duration-200"
                             />
                         </div>
@@ -82,6 +144,9 @@ export default function SignUpPage() {
                                 id="email"
                                 type="email"
                                 placeholder="julianna@luxe.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
                                 className="w-full px-4 py-3.5 bg-white border border-[#e8e3db] rounded text-[15px] text-[#1a1a1a] placeholder:text-[#ccc] focus:outline-none focus:border-[#c9a84c] focus:ring-1 focus:ring-[#c9a84c] transition duration-200"
                             />
                         </div>
@@ -98,6 +163,9 @@ export default function SignUpPage() {
                                     id="password"
                                     type="password"
                                     placeholder="••••••••"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
                                     className="w-full px-4 py-3.5 bg-white border border-[#e8e3db] rounded text-[16px] text-[#1a1a1a] placeholder:text-[#ccc] focus:outline-none focus:border-[#c9a84c] focus:ring-1 focus:ring-[#c9a84c] transition duration-200 tracking-widest"
                                 />
                             </div>
@@ -112,6 +180,9 @@ export default function SignUpPage() {
                                     id="confirmPassword"
                                     type="password"
                                     placeholder="••••••••"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    required
                                     className="w-full px-4 py-3.5 bg-white border border-[#e8e3db] rounded text-[16px] text-[#1a1a1a] placeholder:text-[#ccc] focus:outline-none focus:border-[#c9a84c] focus:ring-1 focus:ring-[#c9a84c] transition duration-200 tracking-widest"
                                 />
                             </div>
@@ -122,6 +193,8 @@ export default function SignUpPage() {
                                 <input
                                     id="newsletter"
                                     type="checkbox"
+                                    checked={newsletter}
+                                    onChange={(e) => setNewsletter(e.target.checked)}
                                     className="w-4 h-4 text-[#c9a84c] bg-white border-[#e8e3db] rounded focus:ring-[#c9a84c] focus:ring-2 accent-[#c9a84c] cursor-pointer"
                                 />
                             </div>
@@ -132,9 +205,10 @@ export default function SignUpPage() {
 
                         <button
                             type="submit"
-                            className="w-full bg-[#dfc067] hover:bg-[#c9a84c] text-white font-semibold py-4 px-4 rounded text-xs tracking-widest uppercase transition-colors"
+                            disabled={loading}
+                            className="w-full bg-[#dfc067] hover:bg-[#c9a84c] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-4 px-4 rounded text-xs tracking-widest uppercase transition-colors"
                         >
-                            CREATE ACCOUNT
+                            {loading ? "CREATING ACCOUNT…" : "CREATE ACCOUNT"}
                         </button>
                     </form>
 

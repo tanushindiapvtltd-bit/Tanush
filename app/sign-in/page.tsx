@@ -1,7 +1,48 @@
+"use client";
+
+import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
 export default function SignInPage() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const registered = searchParams.get("registered");
+    const callbackUrl = searchParams.get("callbackUrl") ?? "/";
+
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError("");
+
+        try {
+            const result = await signIn("credentials", {
+                email,
+                password,
+                redirect: false,
+            });
+
+            if (result?.error) {
+                setError("Invalid email or password. Please try again.");
+            } else {
+                router.push(callbackUrl);
+                router.refresh();
+            }
+        } catch {
+            setError("Something went wrong. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="flex min-h-screen w-full bg-white font-inter">
             {/* Left side banner - hidden on mobile, 50% width on large screens */}
@@ -49,8 +90,22 @@ export default function SignInPage() {
                         <p className="text-[#6b6b6b] text-sm">Enter your credentials to access your exclusive jewelry vault.</p>
                     </div>
 
+                    {/* Success message after registration */}
+                    {registered && (
+                        <div className="mb-6 px-4 py-3 bg-green-50 border border-green-200 rounded text-sm text-green-700 text-center">
+                            Account created! Please sign in.
+                        </div>
+                    )}
+
+                    {/* Error message */}
+                    {error && (
+                        <div className="mb-6 px-4 py-3 bg-red-50 border border-red-200 rounded text-sm text-red-600 text-center">
+                            {error}
+                        </div>
+                    )}
+
                     {/* Form */}
-                    <form className="space-y-6">
+                    <form className="space-y-6" onSubmit={handleSubmit}>
                         <div>
                             <label
                                 htmlFor="email"
@@ -62,8 +117,10 @@ export default function SignInPage() {
                                 id="email"
                                 type="email"
                                 placeholder="alexander@prestige.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
                                 className="w-full px-4 py-3.5 bg-[#faf9f6]/50 border border-[#e8e3db] rounded text-sm text-[#1a1a1a] placeholder:text-[#999] focus:outline-none focus:border-[#c9a84c] focus:ring-1 focus:ring-[#c9a84c] transition duration-200"
-                                defaultValue="alexander@prestige.com"
                             />
                         </div>
 
@@ -85,25 +142,38 @@ export default function SignInPage() {
                             <div className="relative leading-none">
                                 <input
                                     id="password"
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     placeholder="••••••••••"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
                                     className="w-full px-4 py-3.5 bg-[#faf9f6]/50 border border-[#e8e3db] rounded text-[16px] text-[#1a1a1a] placeholder:text-[#999] focus:outline-none focus:border-[#c9a84c] focus:ring-1 focus:ring-[#c9a84c] transition duration-200 tracking-widest"
-                                    defaultValue="password123"
                                 />
-                                <button type="button" className="absolute right-4 top-1/2 -translate-y-1/2 text-[#999] hover:text-[#1a1a1a] transition-colors pb-0.5">
-                                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                    </svg>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#999] hover:text-[#1a1a1a] transition-colors pb-0.5"
+                                >
+                                    {showPassword ? (
+                                        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                                        </svg>
+                                    ) : (
+                                        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                    )}
                                 </button>
                             </div>
                         </div>
 
                         <button
                             type="submit"
-                            className="w-full bg-[#c9a84c] hover:bg-[#b8972a] text-white font-semibold py-3.5 px-4 rounded text-sm tracking-widest uppercase transition-colors mt-2"
+                            disabled={loading}
+                            className="w-full bg-[#c9a84c] hover:bg-[#b8972a] disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3.5 px-4 rounded text-sm tracking-widest uppercase transition-colors mt-2"
                         >
-                            SIGN IN
+                            {loading ? "SIGNING IN…" : "SIGN IN"}
                         </button>
                     </form>
 
@@ -118,7 +188,11 @@ export default function SignInPage() {
 
                     {/* Social Sign-in */}
                     <div className="mt-8 flex justify-center">
-                        <button type="button" className="flex items-center justify-center gap-3 w-full px-4 py-3 border border-[#e8e3db] rounded hover:bg-[#faf9f6]/50 transition-colors">
+                        <button
+                            type="button"
+                            onClick={() => signIn("google", { callbackUrl: "/" })}
+                            className="flex items-center justify-center gap-3 w-full px-4 py-3 border border-[#e8e3db] rounded hover:bg-[#faf9f6]/50 transition-colors"
+                        >
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
                                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
@@ -130,7 +204,7 @@ export default function SignInPage() {
                     </div>
 
                     <p className="text-center mt-10 text-sm text-[#6b6b6b]">
-                        Don't have an account?{' '}
+                        Don&apos;t have an account?{' '}
                         <Link href="/sign-up" className="font-semibold text-[#c9a84c] hover:text-[#b8972a] transition-colors">
                             Create an account
                         </Link>
