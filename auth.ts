@@ -9,6 +9,10 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// Placeholder stored for Google-only accounts.
+// Can never match a real bcrypt hash → password login is impossible for these users.
+const GOOGLE_OAUTH_PLACEHOLDER = "OAUTH:google";
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     // ── Google OAuth ───────────────────────────────────────────────────────
@@ -36,7 +40,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (error || !user) return null;
 
         // Block Google-only accounts from password login
-        if (!user.password) return null;
+        if (!user.password || user.password === GOOGLE_OAUTH_PLACEHOLDER) {
+          return null;
+        }
 
         const passwordMatch = await bcrypt.compare(
           credentials.password as string,
@@ -52,39 +58,45 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
   pages: {
     signIn: "/sign-in",
-    error: "/sign-in",   // send all auth errors back to sign-in with ?error=
+    error: "/sign-in", // redirect all auth errors back to sign-in with ?error=
   },
 
   callbacks: {
-    // Auto-create a Supabase user on first Google sign-in
+    // Runs after a successful OAuth sign-in.
+    // Auto-creates a Supabase row for first-time Google users, then lets them through.
     async signIn({ user, account }) {
-      if (account?.provider === "google") {
-        const email = user.email?.toLowerCase();
-        if (!email) return false;
+      if (account?.provider !== "google") return true;
 
-        const { data: existing } = await supabaseAdmin
-          .from("users")
-          .select("id")
-          .eq("email", email)
-          .maybeSingle();
+      const email = user.email?.toLowerCase();
+      if (!email) return false;
 
-        if (!existing) {
-          const { error } = await supabaseAdmin.from("users").insert([
-            {
-              name: user.name ?? email.split("@")[0],
-              email,
-              password: null,   // OAuth users have no password
-              newsletter: false,
-            },
-          ]);
+      // Check if user already exists
+      const { data: existing } = await supabaseAdmin
+        .from("users")
+        .select("id")
+        .eq("email", email)
+        .maybeSingle();
 
-          if (error) {
-            console.error("Failed to create Google user in Supabase:", error);
-            return false;
-          }
+      if (!existing) {
+        // First-time Google sign-in → create account automatically
+        const { error } = await supabaseAdmin.from("users").insert([
+          {
+            name: user.name ?? email.split("@")[0],
+            email,
+            password: GOOGLE_OAUTH_PLACEHOLDER, // placeholder — no null constraint issue
+            newsletter: false,
+          },
+        ]);
+
+        if (error) {
+          console.error("[Auth] Failed to create Google user:", error.message);
+          return false;
         }
+
+        console.log("[Auth] New Google user auto-registered:", email);
       }
-      return true;
+
+      return true; // allow sign-in → NextAuth creates session → redirects to callbackUrl (/)
     },
 
     jwt({ token, user }) {
