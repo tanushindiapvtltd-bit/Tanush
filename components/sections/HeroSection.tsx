@@ -41,13 +41,13 @@ export default function HeroSection() {
                     </p>
 
                     {/* Headline */}
-                    <h1 className="font-cormorant text-[3rem] md:text-[4rem] leading-[1.05] text-[#1A1A1A]">
+                    <h1 className="font-cormorant text-[3.5rem] md:text-[5rem] leading-[1.05] font-bold text-[#1A1A1A]">
                         Grace in{" "}
-                        <em className="text-[#C9A84C] not-italic font-light">Every Circle</em>
+                        <em className="text-[#C9A84C] not-italic font-semibold">Every Circle</em>
                     </h1>
 
                     {/* Sub-copy */}
-                    <p className="text-sm text-[#6b6b6b] leading-relaxed max-w-sm">
+                    <p className="text-base text-[#6b6b6b] leading-relaxed max-w-sm">
                         Experience the brilliance of handcrafted luxury. Discover our
                         exclusive collection of timeless bangles designed for the modern
                         muse.
