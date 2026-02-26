@@ -41,7 +41,7 @@ export default function HeroSection() {
                     </p>
 
                     {/* Headline */}
-                    <h1 className="font-cormorant text-[3.5rem] md:text-[5rem] leading-[1.05] font-bold text-[#1A1A1A]">
+                    <h1 className="font-cormorant text-[4.5rem] md:text-[6.5rem] leading-[1] font-bold text-[#1A1A1A]">
                         Grace in{" "}
                         <em className="text-[#C9A84C] not-italic font-semibold">Every Circle</em>
                     </h1>
