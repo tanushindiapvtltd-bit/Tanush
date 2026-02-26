@@ -59,12 +59,12 @@ export default function Navbar() {
                     </button>
 
                     {/* Account */}
-                    <button aria-label="Account" className="text-[#4a4a4a] hover:text-[#C9A84C] transition-colors cursor-pointer">
+                    <Link href="/sign-in" aria-label="Account" className="text-[#4a4a4a] hover:text-[#C9A84C] transition-colors cursor-pointer">
                         <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                             <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" strokeLinecap="round" strokeLinejoin="round" />
                             <circle cx="12" cy="7" r="4" />
                         </svg>
-                    </button>
+                    </Link>
 
                     {/* Hamburger — mobile only */}
                     <button
