@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import { createClient } from "@supabase/supabase-js";
 import bcrypt from "bcryptjs";
 
@@ -10,6 +11,13 @@ const supabaseAdmin = createClient(
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
+    // ── Google OAuth ───────────────────────────────────────────────────────
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+
+    // ── Email / Password ───────────────────────────────────────────────────
     Credentials({
       name: "credentials",
       credentials: {
@@ -27,6 +35,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (error || !user) return null;
 
+        // Block Google-only accounts from password login
+        if (!user.password) return null;
+
         const passwordMatch = await bcrypt.compare(
           credentials.password as string,
           user.password
@@ -34,24 +45,52 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!passwordMatch) return null;
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-        };
+        return { id: user.id, email: user.email, name: user.name };
       },
     }),
   ],
+
   pages: {
     signIn: "/sign-in",
   },
+
   callbacks: {
-    jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
+    // Auto-create a Supabase user on first Google sign-in
+    async signIn({ user, account }) {
+      if (account?.provider === "google") {
+        const email = user.email?.toLowerCase();
+        if (!email) return false;
+
+        const { data: existing } = await supabaseAdmin
+          .from("users")
+          .select("id")
+          .eq("email", email)
+          .maybeSingle();
+
+        if (!existing) {
+          const { error } = await supabaseAdmin.from("users").insert([
+            {
+              name: user.name ?? email.split("@")[0],
+              email,
+              password: null,   // OAuth users have no password
+              newsletter: false,
+            },
+          ]);
+
+          if (error) {
+            console.error("Failed to create Google user in Supabase:", error);
+            return false;
+          }
+        }
       }
+      return true;
+    },
+
+    jwt({ token, user }) {
+      if (user) token.id = user.id;
       return token;
     },
+
     session({ session, token }) {
       if (session.user && token.id) {
         session.user.id = token.id as string;
@@ -59,7 +98,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return session;
     },
   },
-  session: {
-    strategy: "jwt",
-  },
+
+  session: { strategy: "jwt" },
 });
