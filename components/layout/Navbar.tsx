@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
 import { navLinks } from "@/lib/data";
+import { useCart } from "@/lib/cartContext";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -123,6 +124,26 @@ function UserMenu() {
   );
 }
 
+// ── Cart Button ───────────────────────────────────────────────────────────────
+
+function CartButton() {
+  const { totalCount } = useCart();
+  return (
+    <Link href="/cart" aria-label="Shopping bag" className="relative text-[#4a4a4a] hover:text-[#C9A84C] transition-colors">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" strokeLinecap="round" strokeLinejoin="round" />
+        <line x1="3" y1="6" x2="21" y2="6" />
+        <path d="M16 10a4 4 0 01-8 0" strokeLinecap="round" />
+      </svg>
+      {totalCount > 0 && (
+        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#C9A84C] text-white text-[9px] font-semibold flex items-center justify-center">
+          {totalCount > 9 ? "9+" : totalCount}
+        </span>
+      )}
+    </Link>
+  );
+}
+
 // ── Main Navbar ───────────────────────────────────────────────────────────────
 
 export default function Navbar() {
@@ -170,16 +191,7 @@ export default function Navbar() {
           </button>
 
           {/* Cart */}
-          <button aria-label="Cart" className="relative text-[#4a4a4a] hover:text-[#C9A84C] transition-colors cursor-pointer">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" strokeLinecap="round" strokeLinejoin="round" />
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <path d="M16 10a4 4 0 01-8 0" strokeLinecap="round" />
-            </svg>
-            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#C9A84C] text-white text-[9px] font-semibold flex items-center justify-center">
-              2
-            </span>
-          </button>
+          <CartButton />
 
           {/* Account — auth-aware */}
           <UserMenu />
