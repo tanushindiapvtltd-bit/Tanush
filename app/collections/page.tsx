@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -43,7 +43,7 @@ function Stars({ rating, size = 12 }: { rating: number; size?: number }) {
 
 /* ── Main ───────────────────────────────────────────────────────────────── */
 
-export default function CollectionsPage() {
+function CollectionsContent() {
     const searchParams = useSearchParams();
     const categoryParam = searchParams.get("category") ?? "all";
     const [activeCategory, setActiveCategory] = useState(categoryParam);
@@ -287,5 +287,17 @@ function ProductCard({ product }: { product: (typeof products)[0] }) {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function CollectionsPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex flex-col min-h-screen w-full items-center justify-center" style={{ background: "#faf9f6" }}>
+                <div className="w-8 h-8 border-2 border-[#c9a84c] border-t-transparent rounded-full animate-spin" />
+            </div>
+        }>
+            <CollectionsContent />
+        </Suspense>
     );
 }
