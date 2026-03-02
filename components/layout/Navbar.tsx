@@ -129,7 +129,7 @@ function UserMenu() {
 function CartButton() {
   const { totalCount } = useCart();
   return (
-    <Link href="/cart" aria-label="Shopping bag" className="relative text-[#4a4a4a] hover:text-[#C9A84C] transition-colors">
+    <Link href="/cart" aria-label="Shopping bag" className="relative text-[#C9A84C] hover:text-[#b8963f] transition-colors">
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" strokeLinecap="round" strokeLinejoin="round" />
         <line x1="3" y1="6" x2="21" y2="6" />
@@ -182,13 +182,40 @@ export default function Navbar() {
 
         {/* Right Icons */}
         <div className="flex items-center gap-4">
-          {/* Search */}
-          <button aria-label="Search" className="text-[#4a4a4a] hover:text-[#C9A84C] transition-colors cursor-pointer">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          {/* Search bar */}
+          <div className="hidden md:flex items-center relative">
+            <svg
+              width="14"
+              height="14"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="#c9a84c"
+              strokeWidth={2}
+              className="absolute left-3 pointer-events-none"
+            >
               <circle cx="11" cy="11" r="8" />
               <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
             </svg>
-          </button>
+            <input
+              type="text"
+              placeholder="Search..."
+              className="pl-8 pr-4 py-1.5 text-xs rounded-full outline-none transition-all w-36 focus:w-48"
+              style={{
+                border: "1px solid #e0d5c5",
+                background: "#faf9f6",
+                color: "#1a1a1a",
+              }}
+              onFocus={(e) => (e.target.style.borderColor = "#c9a84c")}
+              onBlur={(e) => (e.target.style.borderColor = "#e0d5c5")}
+            />
+          </div>
+
+          {/* Wishlist */}
+          <Link href="/wishlist" aria-label="Wishlist" className="text-[#C9A84C] hover:text-[#b8963f] transition-colors">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+              <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </Link>
 
           {/* Cart */}
           <CartButton />
@@ -201,7 +228,7 @@ export default function Navbar() {
             aria-label="Toggle menu"
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden text-[#4a4a4a] hover:text-[#C9A84C] transition-colors cursor-pointer"
+            className="md:hidden text-[#C9A84C] hover:text-[#b8963f] transition-colors cursor-pointer"
           >
             {menuOpen ? (
               <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>

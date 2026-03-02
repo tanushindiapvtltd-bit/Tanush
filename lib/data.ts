@@ -2,7 +2,6 @@ import type { NavLink, Collection, FooterColumn, TrustItem } from "@/types";
 
 // ─── Navigation ────────────────────────────────────────────────────────────
 export const navLinks: NavLink[] = [
-    { label: "Shop", href: "/shop" },
     { label: "Collections", href: "/collections" },
     { label: "About", href: "/about" },
     { label: "Journal", href: "/journal" },
@@ -27,55 +26,39 @@ export const trustItems: TrustItem[] = [
     },
 ];
 
-// ─── Collections ───────────────────────────────────────────────────────────
+// ─── Collections (curated categories) ──────────────────────────────────────
 export const collections: Collection[] = [
     {
         id: 1,
-        tag: "MATERIAL",
-        title: "Diamond Collection",
-        image: "/collections/diamond.jpg",
-        alt: "A hand wearing a delicate diamond bangle",
-        href: "/collections/diamond",
+        tag: "OCCASION",
+        title: "Bridal",
+        image: "/collections/bridal/Catalog 1/1.png",
+        alt: "Bridal jewellery collection",
+        href: "/collections?category=bridal",
     },
     {
         id: 2,
-        tag: "OCCASION",
-        title: "Wedding & Bridal",
-        image: "/collections/bridal.jpg",
-        alt: "A bride in red saree wearing gold jewellery",
-        href: "/collections/bridal",
+        tag: "CELEBRATION",
+        title: "Festive",
+        image: "/collections/traditional ethinic/catalog 5/10.png",
+        alt: "Festive jewellery collection",
+        href: "/collections?category=festive",
     },
     {
         id: 3,
         tag: "STYLE",
-        title: "Everyday Luxury",
-        image: "/collections/everyday.jpg",
-        alt: "Premium gift box with golden bangles",
-        href: "/collections/everyday",
+        title: "Minimal & Daily",
+        image: "/collections/minimal and daily/7.png",
+        alt: "Minimal daily wear bangles",
+        href: "/collections?category=minimal",
     },
     {
         id: 4,
-        tag: "OCCASION",
-        title: "Festive",
-        image: "/Festive/6.png",
-        alt: "Festive Jewellery",
-        href: "/collections/festive",
-    },
-    {
-        id: 5,
-        tag: "OCCASION",
-        title: "Party",
-        image: "/Oxidised/8.png",
-        alt: "Party Jewellery",
-        href: "/collections/party",
-    },
-    {
-        id: 6,
-        tag: "STYLE",
-        title: "Office Wear",
-        image: "/Minimal-Daily wear/7.png",
-        alt: "Minimal Daily Wear",
-        href: "/collections/office-wear",
+        tag: "HERITAGE",
+        title: "Traditional Ethnic",
+        image: "/collections/traditional ethinic/catclog 2/5.png",
+        alt: "Traditional ethnic jewellery",
+        href: "/collections?category=traditional",
     },
 ];
 
