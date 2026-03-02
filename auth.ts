@@ -1,14 +1,9 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
-import { createClient } from "@supabase/supabase-js";
+import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { sendLoginNotificationEmail, sendWelcomeEmail } from "@/lib/email";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 // Placeholder stored for Google-only accounts.
 // Can never match a real bcrypt hash → password login is impossible for these users.
@@ -32,13 +27,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const { data: user, error } = await supabaseAdmin
-          .from("users")
-          .select("id, name, email, password")
-          .eq("email", credentials.email)
-          .single();
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email as string },
+          select: { id: true, name: true, email: true, password: true },
+        });
 
-        if (error || !user) return null;
+        if (!user) return null;
 
         // Block Google-only accounts from password login
         if (!user.password || user.password === GOOGLE_OAUTH_PLACEHOLDER) {
@@ -64,56 +58,51 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
   pages: {
     signIn: "/sign-in",
-    error: "/sign-in", // redirect all auth errors back to sign-in with ?error=
+    error: "/sign-in",
   },
 
   callbacks: {
     // Runs after a successful OAuth sign-in.
-    // Auto-creates a Supabase row for first-time Google users, then lets them through.
+    // Auto-creates a row for first-time Google users, then lets them through.
     async signIn({ user, account }) {
       if (account?.provider !== "google") return true;
 
       const email = user.email?.toLowerCase();
       if (!email) return false;
 
-      // Check if user already exists
-      const { data: existing } = await supabaseAdmin
-        .from("users")
-        .select("id")
-        .eq("email", email)
-        .maybeSingle();
+      const existing = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true },
+      });
 
       if (!existing) {
-        // First-time Google sign-in → create account automatically
         const userName = user.name ?? email.split("@")[0];
-        const { error } = await supabaseAdmin.from("users").insert([
-          {
-            name: userName,
-            email,
-            password: GOOGLE_OAUTH_PLACEHOLDER,
-            newsletter: false,
-          },
-        ]);
-
-        if (error) {
-          console.error("[Auth] Failed to create Google user:", error.message);
+        try {
+          await prisma.user.create({
+            data: {
+              name: userName,
+              email,
+              password: GOOGLE_OAUTH_PLACEHOLDER,
+              newsletter: false,
+            },
+          });
+        } catch (err) {
+          console.error("[Auth] Failed to create Google user:", err);
           return false;
         }
 
         console.log("[Auth] New Google user auto-registered:", email);
 
-        // Send welcome email to new Google users
         sendWelcomeEmail(email, userName).catch((err) =>
           console.error("[Auth] Google welcome email failed:", err)
         );
       } else {
-        // Returning Google user — send login notification
         sendLoginNotificationEmail(email, user.name ?? email).catch((err) =>
           console.error("[Auth] Google login email failed:", err)
         );
       }
 
-      return true; // allow sign-in → NextAuth creates session → redirects to callbackUrl (/)
+      return true;
     },
 
     jwt({ token, user }) {

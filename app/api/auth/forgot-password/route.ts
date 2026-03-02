@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
-import { supabaseAdmin } from "@/lib/supabase";
+import { prisma } from "@/lib/prisma";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rateLimiter";
 
 export async function POST(req: NextRequest) {
-  // Rate limit: 3 reset requests per email per 15 minutes
+  // Rate limit: 3 reset requests per IP per 15 minutes
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
     req.headers.get("x-real-ip") ??
@@ -27,31 +27,26 @@ export async function POST(req: NextRequest) {
     const normalizedEmail = String(email).trim().toLowerCase();
 
     // Look up user — always return success to prevent email enumeration
-    const { data: user } = await supabaseAdmin
-      .from("users")
-      .select("id, name, email")
-      .eq("email", normalizedEmail)
-      .maybeSingle();
+    const user = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+      select: { id: true, name: true, email: true },
+    });
 
     if (user) {
       // Delete any existing tokens for this user first
-      await supabaseAdmin
-        .from("password_reset_tokens")
-        .delete()
-        .eq("user_id", user.id);
+      await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
 
       // Generate a secure random token
       const token = randomBytes(32).toString("hex");
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-      const { error: insertError } = await supabaseAdmin
-        .from("password_reset_tokens")
-        .insert([{ user_id: user.id, token, expires_at: expiresAt.toISOString() }]);
-
-      if (insertError) {
-        console.error("[ForgotPassword] Token insert error:", insertError.message);
-      } else {
+      try {
+        await prisma.passwordResetToken.create({
+          data: { userId: user.id, token, expiresAt },
+        });
         await sendPasswordResetEmail(user.email, user.name, token);
+      } catch (err) {
+        console.error("[ForgotPassword] Token insert error:", err);
       }
     }
 

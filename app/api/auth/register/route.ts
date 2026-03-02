@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rateLimiter";
 import { sendWelcomeEmail } from "@/lib/email";
 import bcrypt from "bcryptjs";
@@ -38,10 +38,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (name.length > 100) {
-      return NextResponse.json(
-        { error: "Name is too long." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Name is too long." }, { status: 400 });
     }
 
     if (!EMAIL_REGEX.test(email)) {
@@ -59,21 +56,16 @@ export async function POST(req: NextRequest) {
     }
 
     if (password.length > 128) {
-      return NextResponse.json(
-        { error: "Password is too long." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Password is too long." }, { status: 400 });
     }
 
     // ── Duplicate check ──────────────────────────────────────────────────────
-    const { data: existingUser } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("email", email)
-      .maybeSingle();
+    const existing = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
 
-    if (existingUser) {
-      // Generic message to avoid user enumeration
+    if (existing) {
       return NextResponse.json(
         { error: "An account with this email already exists." },
         { status: 400 }
@@ -83,21 +75,11 @@ export async function POST(req: NextRequest) {
     // ── Hash & store ─────────────────────────────────────────────────────────
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    const { data, error } = await supabaseAdmin
-      .from("users")
-      .insert([{ name, email, password: hashedPassword, newsletter }])
-      .select("id, email, name")
-      .single();
+    const data = await prisma.user.create({
+      data: { name, email, password: hashedPassword, newsletter },
+      select: { id: true, email: true, name: true },
+    });
 
-    if (error) {
-      console.error("Supabase insert error:", error);
-      return NextResponse.json(
-        { error: "Failed to create account. Please try again." },
-        { status: 500 }
-      );
-    }
-
-    // Send welcome email (fire-and-forget — don't block the response)
     sendWelcomeEmail(data.email, data.name).catch((err) =>
       console.error("[Register] Welcome email failed:", err)
     );
@@ -108,9 +90,6 @@ export async function POST(req: NextRequest) {
     );
   } catch (err) {
     console.error("Register route error:", err);
-    return NextResponse.json(
-      { error: "Internal server error." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

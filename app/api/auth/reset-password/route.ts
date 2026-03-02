@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
 export async function POST(req: NextRequest) {
@@ -25,13 +25,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Look up token
-    const { data: resetToken, error: tokenError } = await supabaseAdmin
-      .from("password_reset_tokens")
-      .select("user_id, expires_at")
-      .eq("token", token)
-      .maybeSingle();
+    const resetToken = await prisma.passwordResetToken.findUnique({
+      where: { token },
+      select: { userId: true, expiresAt: true },
+    });
 
-    if (tokenError || !resetToken) {
+    if (!resetToken) {
       return NextResponse.json(
         { error: "Invalid or expired reset link. Please request a new one." },
         { status: 400 }
@@ -39,8 +38,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Check expiry
-    if (new Date(resetToken.expires_at) < new Date()) {
-      await supabaseAdmin.from("password_reset_tokens").delete().eq("token", token);
+    if (resetToken.expiresAt < new Date()) {
+      await prisma.passwordResetToken.delete({ where: { token } });
       return NextResponse.json(
         { error: "This reset link has expired. Please request a new one." },
         { status: 400 }
@@ -50,21 +49,13 @@ export async function POST(req: NextRequest) {
     // Hash and update password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    const { error: updateError } = await supabaseAdmin
-      .from("users")
-      .update({ password: hashedPassword })
-      .eq("id", resetToken.user_id);
-
-    if (updateError) {
-      console.error("[ResetPassword] Update error:", updateError.message);
-      return NextResponse.json(
-        { error: "Failed to update password. Please try again." },
-        { status: 500 }
-      );
-    }
+    await prisma.user.update({
+      where: { id: resetToken.userId },
+      data: { password: hashedPassword },
+    });
 
     // Delete used token
-    await supabaseAdmin.from("password_reset_tokens").delete().eq("token", token);
+    await prisma.passwordResetToken.delete({ where: { token } });
 
     return NextResponse.json({ message: "Password updated successfully." });
   } catch (err) {
