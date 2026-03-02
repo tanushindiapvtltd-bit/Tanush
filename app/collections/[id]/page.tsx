@@ -162,8 +162,8 @@ export default function ProductDetailPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
 
                         {/* ── LEFT: Gallery ── */}
-                        <div className="flex gap-4">
-                            {/* Thumbnail strip */}
+                        <div className="flex flex-col md:flex-row gap-4">
+                            {/* Thumbnail strip — desktop: vertical sidebar */}
                             <div className="hidden md:flex flex-col gap-3" style={{ width: 64 }}>
                                 {product.thumbs.map((src, i) => (
                                     <button
@@ -221,6 +221,33 @@ export default function ProductDetailPage() {
                                     </svg>
                                     Try in 3D
                                 </button>
+                            </div>
+
+                            {/* Thumbnail strip — mobile: horizontal scroll below main image */}
+                            <div className="flex md:hidden gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+                                {product.thumbs.map((src, i) => (
+                                    <button
+                                        key={i}
+                                        onClick={() => setActiveImage(i)}
+                                        className="relative rounded-md overflow-hidden transition-all duration-200 cursor-pointer flex-shrink-0"
+                                        style={{
+                                            width: 72,
+                                            height: 72,
+                                            border: activeImage === i
+                                                ? "2px solid #c9a84c"
+                                                : "1px solid #e0d5c5",
+                                            background: "#f5ede0",
+                                        }}
+                                    >
+                                        <Image
+                                            src={src}
+                                            alt={`View ${i + 1}`}
+                                            fill
+                                            style={{ objectFit: "cover" }}
+                                            sizes="72px"
+                                        />
+                                    </button>
+                                ))}
                             </div>
                         </div>
 
