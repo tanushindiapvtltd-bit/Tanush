@@ -7,15 +7,45 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  COD
+  RAZORPAY
+}
+
 model User {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name       String
   email      String   @unique
   password   String
   newsletter Boolean  @default(false)
+  role       Role     @default(USER)
   createdAt  DateTime @default(now()) @map("created_at")
 
   passwordResetTokens PasswordResetToken[]
+  orders              Order[]
+  reviews             Review[]
+  wishlistItems       WishlistItem[]
 
   @@map("users")
 }
@@ -30,4 +60,124 @@ model PasswordResetToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("password_reset_tokens")
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  price       String
+  priceNum    Int      @map("price_num")
+  category    String
+  categoryKey String   @map("category_key")
+  mainImage   String   @map("main_image")
+  thumbs      Json     @default("[]")
+  description String
+  specs       Json     @default("[]")
+  inStock     Boolean  @default(true) @map("in_stock")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  reviews       Review[]
+  wishlistItems WishlistItem[]
+  orderItems    OrderItem[]
+
+  @@map("products")
+}
+
+model Order {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String        @map("user_id") @db.Uuid
+  orderNumber   String        @unique @map("order_number")
+  status        OrderStatus   @default(PENDING)
+  paymentMethod PaymentMethod @map("payment_method")
+  paymentStatus PaymentStatus @default(PENDING) @map("payment_status")
+  subtotal      Int
+  shippingCost  Int           @default(0) @map("shipping_cost")
+  tax           Int           @default(0)
+  total         Int
+
+  shippingName      String  @map("shipping_name")
+  shippingEmail     String  @map("shipping_email")
+  shippingPhone     String? @map("shipping_phone")
+  shippingAddress   String  @map("shipping_address")
+  shippingApartment String? @map("shipping_apartment")
+  shippingCity      String  @map("shipping_city")
+  shippingState     String  @map("shipping_state")
+  shippingZip       String  @map("shipping_zip")
+  shippingCountry   String  @default("India") @map("shipping_country")
+  shippingMethod    String  @default("standard") @map("shipping_method")
+
+  razorpayOrderId   String? @map("razorpay_order_id")
+  razorpayPaymentId String? @map("razorpay_payment_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user             User              @relation(fields: [userId], references: [id])
+  items            OrderItem[]
+  deliveryTracking DeliveryTracking?
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id           String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId      String @map("order_id") @db.Uuid
+  productId    Int    @map("product_id")
+  productName  String @map("product_name")
+  productImage String @map("product_image")
+  price        Int
+  quantity     Int
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model Review {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  productId Int      @map("product_id")
+  rating    Int
+  title     String?
+  body      String
+  imageUrl  String?  @map("image_url")
+  approved  Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("reviews")
+}
+
+model WishlistItem {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  productId Int      @map("product_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@map("wishlist_items")
+}
+
+model DeliveryTracking {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId           String    @unique @map("order_id") @db.Uuid
+  trackingNumber    String?   @map("tracking_number")
+  carrier           String?
+  estimatedDelivery DateTime? @map("estimated_delivery")
+  currentStatus     String    @default("Order Placed") @map("current_status")
+  currentLocation   String?   @map("current_location")
+  history           Json      @default("[]")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("delivery_tracking")
 }

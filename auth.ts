@@ -5,19 +5,15 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { sendLoginNotificationEmail, sendWelcomeEmail } from "@/lib/email";
 
-// Placeholder stored for Google-only accounts.
-// Can never match a real bcrypt hash → password login is impossible for these users.
 const GOOGLE_OAUTH_PLACEHOLDER = "OAUTH:google";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
-    // ── Google OAuth ───────────────────────────────────────────────────────
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
 
-    // ── Email / Password ───────────────────────────────────────────────────
     Credentials({
       name: "credentials",
       credentials: {
@@ -29,12 +25,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email as string },
-          select: { id: true, name: true, email: true, password: true },
+          select: { id: true, name: true, email: true, password: true, role: true },
         });
 
         if (!user) return null;
 
-        // Block Google-only accounts from password login
         if (!user.password || user.password === GOOGLE_OAUTH_PLACEHOLDER) {
           return null;
         }
@@ -46,12 +41,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!passwordMatch) return null;
 
-        // Fire-and-forget login notification
         sendLoginNotificationEmail(user.email, user.name).catch((err) =>
           console.error("[Auth] Login email failed:", err)
         );
 
-        return { id: user.id, email: user.email, name: user.name };
+        return { id: user.id, email: user.email, name: user.name, role: user.role };
       },
     }),
   ],
@@ -62,8 +56,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
 
   callbacks: {
-    // Runs after a successful OAuth sign-in.
-    // Auto-creates a row for first-time Google users, then lets them through.
     async signIn({ user, account }) {
       if (account?.provider !== "google") return true;
 
@@ -91,8 +83,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return false;
         }
 
-        console.log("[Auth] New Google user auto-registered:", email);
-
         sendWelcomeEmail(email, userName).catch((err) =>
           console.error("[Auth] Google welcome email failed:", err)
         );
@@ -105,14 +95,27 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return true;
     },
 
-    jwt({ token, user }) {
-      if (user) token.id = user.id;
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        // @ts-expect-error role is added in authorize
+        token.role = user.role ?? "USER";
+      }
+      // Refresh role from DB on each token refresh
+      if (token.id && !token.role) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { role: true },
+        });
+        token.role = dbUser?.role ?? "USER";
+      }
       return token;
     },
 
     session({ session, token }) {
       if (session.user && token.id) {
         session.user.id = token.id as string;
+        session.user.role = (token.role as "USER" | "ADMIN") ?? "USER";
       }
       return session;
     },

@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { useCart } from "@/lib/cartContext";
-import { products } from "@/lib/products";
 
-const TAX_RATE = 0.08; // 8%
+const TAX_RATE = 0.03; // 3% (matches checkout)
+
+interface SuggestedProduct { id: number; name: string; price: string; mainImage: string; }
 
 export default function CartPage() {
     const { items, removeItem, updateQty, subtotal } = useCart();
@@ -16,8 +17,19 @@ export default function CartPage() {
     const tax = Math.round(subtotal * TAX_RATE);
     const total = subtotal + tax;
 
-    // 4 random products for "You May Also Like"
-    const suggestions = products.filter((p) => !items.find((i) => i.id === p.id)).slice(0, 4);
+    const [suggestions, setSuggestions] = useState<SuggestedProduct[]>([]);
+    useEffect(() => {
+        fetch("/api/products")
+            .then((r) => r.json())
+            .then((data) => {
+                if (Array.isArray(data)) {
+                    const cartIds = new Set(items.map((i) => i.id));
+                    setSuggestions(data.filter((p: SuggestedProduct) => !cartIds.has(p.id)).slice(0, 4));
+                }
+            })
+            .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
         <div className="flex flex-col min-h-screen" style={{ background: "#faf9f6", fontFamily: "'Segoe UI', sans-serif" }}>
@@ -90,7 +102,7 @@ export default function CartPage() {
                                         value="COMPLIMENTARY"
                                         valueStyle={{ color: "#c8a045", fontWeight: 700, fontSize: "0.7rem", letterSpacing: "0.08em" }}
                                     />
-                                    <SummaryRow label="Estimated Tax" value={`₹${tax.toLocaleString("en-IN")}`} />
+                                    <SummaryRow label="Tax (3%)" value={`₹${tax.toLocaleString("en-IN")}`} />
                                 </div>
 
                                 <div
