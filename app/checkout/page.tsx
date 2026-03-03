@@ -162,16 +162,26 @@ export default function CheckoutPage() {
         setLoading(true);
         setError("");
         setPaymentCancelled(false);
+
+        if (!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID) {
+            setError("Payment gateway is not configured. Please contact support.");
+            setLoading(false);
+            return;
+        }
+
         try {
             // Load Razorpay SDK
             const loaded = await loadRazorpayScript();
             if (!loaded) { setError("Failed to load payment gateway. Please try again."); return; }
 
-            // Create Razorpay order on server
+            // Create Razorpay order on server — send items so server recalculates total
             const rpRes = await fetch("/api/payment/razorpay/create-order", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ amount: total }),
+                body: JSON.stringify({
+                    items: items.map((i) => ({ productId: i.id, quantity: i.quantity })),
+                    shippingMethod,
+                }),
             });
             const rpData = await rpRes.json();
             if (!rpRes.ok) { setError(rpData.error ?? "Payment gateway error"); return; }
@@ -259,6 +269,9 @@ export default function CheckoutPage() {
 
             const rzp = new window.Razorpay(options);
             rzp.open();
+        } catch (err) {
+            console.error("[Razorpay] Error:", err);
+            setError("Failed to open payment gateway. Please try again.");
         } finally {
             setLoading(false);
         }

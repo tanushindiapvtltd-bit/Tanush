@@ -21,6 +21,7 @@ function getInitials(name?: string | null, email?: string | null): string {
 
 function UserMenu() {
     const { data: session, status } = useSession();
+    const { clearUserData } = useCart();
     const [open, setOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -41,8 +42,9 @@ function UserMenu() {
 
     const handleSignOut = useCallback(() => {
         setOpen(false);
+        clearUserData();
         signOut({ callbackUrl: "/" });
-    }, []);
+    }, [clearUserData]);
 
     if (status === "loading") return <div className="w-8 h-8 rounded-full bg-[#e8e3db] animate-pulse" />;
 
@@ -181,6 +183,7 @@ function SearchBar() {
 export default function Navbar() {
     const [menuOpen, setMenuOpen] = useState(false);
     const { data: session, status } = useSession();
+    const { clearUserData } = useCart();
     const closeMenu = useCallback(() => setMenuOpen(false), []);
 
     return (
@@ -260,7 +263,7 @@ export default function Navbar() {
                                 {session?.user?.role === "ADMIN" && (
                                     <Link href="/admin" onClick={closeMenu} className="text-sm font-semibold hover:opacity-80 tracking-wide no-underline py-1" style={{ color: "#c9a84c" }}>Admin Panel</Link>
                                 )}
-                                <button onClick={() => { closeMenu(); signOut({ callbackUrl: "/" }); }}
+                                <button onClick={() => { closeMenu(); clearUserData(); signOut({ callbackUrl: "/" }); }}
                                     className="text-sm text-[#4a4a4a] hover:text-[#C9A84C] transition-colors tracking-wide text-left py-1 cursor-pointer">
                                     Sign Out
                                 </button>

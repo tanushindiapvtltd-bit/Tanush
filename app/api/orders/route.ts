@@ -46,10 +46,6 @@ export async function POST(req: NextRequest) {
         shippingCountry,
         shippingMethod,
         paymentMethod,
-        subtotal,
-        shippingCost,
-        tax,
-        total,
         razorpayOrderId,
     } = body;
 
@@ -61,11 +57,19 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid payment method" }, { status: 400 });
     }
 
-    // Validate all items are in stock
-    const productIds = items.map((i: { productId: number }) => i.productId);
+    // Validate item quantities
+    for (const item of items) {
+        const qty = Number(item.quantity);
+        if (!Number.isInteger(qty) || qty < 1 || qty > 99) {
+            return NextResponse.json({ error: "Invalid item quantity" }, { status: 400 });
+        }
+    }
+
+    // Fetch authoritative prices from DB — never trust client-provided totals
+    const productIds = items.map((i: { productId: number }) => Number(i.productId));
     const dbProducts = await prisma.product.findMany({
         where: { id: { in: productIds } },
-        select: { id: true, inStock: true, name: true },
+        select: { id: true, inStock: true, name: true, priceNum: true },
     });
     const outOfStock = dbProducts.filter((p) => !p.inStock);
     if (outOfStock.length > 0) {
@@ -79,6 +83,14 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "One or more products no longer exist" }, { status: 404 });
     }
 
+    // Server-side total calculation — authoritative, not client-provided
+    const priceMap = new Map(dbProducts.map((p) => [p.id, p.priceNum]));
+    const subtotal = items.reduce((sum: number, item: { productId: number; quantity: number }) =>
+        sum + (priceMap.get(Number(item.productId)) ?? 0) * Number(item.quantity), 0);
+    const resolvedShipping = shippingMethod === "express" ? 2500 : 0;
+    const tax = Math.round(subtotal * 0.03);
+    const total = subtotal + resolvedShipping + tax;
+
     const order = await prisma.order.create({
         data: {
             userId: session.user.id,
@@ -86,10 +98,10 @@ export async function POST(req: NextRequest) {
             status: "PENDING",
             paymentMethod: paymentMethod === "COD" ? "COD" : "RAZORPAY",
             paymentStatus: paymentMethod === "COD" ? "PENDING" : "PENDING",
-            subtotal: Math.round(subtotal),
-            shippingCost: Math.round(shippingCost ?? 0),
-            tax: Math.round(tax ?? 0),
-            total: Math.round(total),
+            subtotal,
+            shippingCost: resolvedShipping,
+            tax,
+            total,
             shippingName,
             shippingEmail,
             shippingPhone: shippingPhone || null,

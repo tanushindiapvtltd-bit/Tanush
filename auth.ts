@@ -4,6 +4,7 @@ import Google from "next-auth/providers/google";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { sendLoginNotificationEmail, sendWelcomeEmail } from "@/lib/email";
+import { checkRateLimit } from "@/lib/rateLimiter";
 
 const GOOGLE_OAUTH_PLACEHOLDER = "OAUTH:google";
 
@@ -20,8 +21,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         if (!credentials?.email || !credentials?.password) return null;
+
+        // Rate limit login: 10 attempts per IP per 15 minutes
+        const ip =
+          (request as Request | undefined)
+            ?.headers?.get?.("x-forwarded-for")
+            ?.split(",")[0]
+            .trim() ?? "unknown";
+        if (!checkRateLimit(`login:${ip}`, 10, 15 * 60_000)) {
+          return null; // NextAuth converts null to CredentialsSignin error
+        }
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email as string },

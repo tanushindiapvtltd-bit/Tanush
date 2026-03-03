@@ -16,8 +16,35 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
-    if (!process.env.RAZORPAY_KEY_SECRET) {
+    if (!process.env.RAZORPAY_KEY_SECRET || !process.env.RAZORPAY_KEY_ID) {
         return NextResponse.json({ error: "Payment gateway not configured" }, { status: 500 });
+    }
+
+    // Fetch DB order first to verify ownership and get expected amount
+    const dbOrder = await prisma.order.findFirst({
+        where: { id: orderId, userId: session.user.id },
+        select: { id: true, total: true },
+    });
+    if (!dbOrder) {
+        return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    // Verify Razorpay order amount matches the DB-authoritative total
+    try {
+        const Razorpay = (await import("razorpay")).default;
+        const razorpay = new Razorpay({
+            key_id: process.env.RAZORPAY_KEY_ID,
+            key_secret: process.env.RAZORPAY_KEY_SECRET,
+        });
+        const rpOrder = await razorpay.orders.fetch(razorpayOrderId);
+        const expectedPaise = dbOrder.total * 100;
+        if (Number(rpOrder.amount) !== expectedPaise) {
+            console.error(`[Razorpay] Amount mismatch: expected ${expectedPaise}, got ${rpOrder.amount}`);
+            return NextResponse.json({ error: "Payment amount mismatch" }, { status: 400 });
+        }
+    } catch (err) {
+        console.error("[Razorpay] Order fetch error:", err);
+        return NextResponse.json({ error: "Failed to verify payment amount" }, { status: 500 });
     }
 
     // Verify signature
