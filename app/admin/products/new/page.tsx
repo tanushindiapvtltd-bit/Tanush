@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ImageUploader, ThumbsUploader } from "@/components/admin/ProductImageUpload";
 
 interface Spec {
     label: string;
@@ -23,7 +24,7 @@ export default function NewProductPage() {
     const [category, setCategory] = useState("Bridal");
     const [categoryKey, setCategoryKey] = useState("bridal");
     const [mainImage, setMainImage] = useState("");
-    const [thumbsRaw, setThumbsRaw] = useState("");
+    const [thumbs, setThumbs] = useState<string[]>([]);
     const [description, setDescription] = useState("");
     const [inStock, setInStock] = useState(true);
     const [specs, setSpecs] = useState<Spec[]>([{ label: "", value: "" }]);
@@ -47,10 +48,10 @@ export default function NewProductPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!mainImage) { setError("Please upload a main product image."); return; }
         setError("");
         setSaving(true);
         try {
-            const thumbs = thumbsRaw.split(",").map((t) => t.trim()).filter(Boolean);
             const res = await fetch("/api/admin/products", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -103,15 +104,18 @@ export default function NewProductPage() {
                     </select>
                 </div>
 
-                <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#888" }}>Main Image Path</label>
-                    <input value={mainImage} onChange={(e) => setMainImage(e.target.value)} required placeholder="/collections/bridal/Catalog 1/1.png" className={inputCls} style={inputStyle} />
-                </div>
+                <ImageUploader
+                    label="Main Product Image"
+                    value={mainImage}
+                    onChange={setMainImage}
+                    required
+                />
 
-                <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#888" }}>Thumbnail Paths (comma-separated)</label>
-                    <input value={thumbsRaw} onChange={(e) => setThumbsRaw(e.target.value)} placeholder="/path/1.png, /path/2.png" className={inputCls} style={inputStyle} />
-                </div>
+                <ThumbsUploader
+                    label="Gallery Thumbnails"
+                    values={thumbs}
+                    onChange={setThumbs}
+                />
 
                 <div>
                     <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#888" }}>Description</label>

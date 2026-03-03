@@ -6,6 +6,37 @@ import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import { useCart } from "@/lib/cartContext";
+
+declare global {
+    interface Window {
+        Razorpay: new (options: RazorpayRetryOptions) => { open(): void };
+    }
+}
+
+interface RazorpayRetryOptions {
+    key: string;
+    amount: number;
+    currency: string;
+    name: string;
+    description: string;
+    order_id: string;
+    handler: (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => void;
+    prefill: { name: string; email: string; contact: string };
+    theme: { color: string };
+    modal: { ondismiss: () => void };
+}
+
+function loadRazorpayScript(): Promise<boolean> {
+    return new Promise((resolve) => {
+        if (typeof window !== "undefined" && window.Razorpay) { resolve(true); return; }
+        const script = document.createElement("script");
+        script.src = "https://checkout.razorpay.com/v1/checkout.js";
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.body.appendChild(script);
+    });
+}
 
 interface TrackingHistory {
     status: string;
@@ -20,6 +51,7 @@ interface Order {
     status: string;
     paymentMethod: string;
     paymentStatus: string;
+    razorpayOrderId: string | null;
     subtotal: number;
     shippingCost: number;
     tax: number;
@@ -67,6 +99,9 @@ export default function OrderDetailPage() {
     const { id } = useParams<{ id: string }>();
     const [order, setOrder] = useState<Order | null>(null);
     const [loading, setLoading] = useState(true);
+    const [retrying, setRetrying] = useState(false);
+    const [retryError, setRetryError] = useState("");
+    const { clearCart } = useCart();
 
     useEffect(() => {
         fetch(`/api/orders/${id}`)
@@ -74,6 +109,89 @@ export default function OrderDetailPage() {
             .then((data) => setOrder(data))
             .finally(() => setLoading(false));
     }, [id]);
+
+    const handleRetryPayment = async () => {
+        if (!order) return;
+        setRetrying(true);
+        setRetryError("");
+        try {
+            const loaded = await loadRazorpayScript();
+            if (!loaded) { setRetryError("Failed to load payment gateway. Please try again."); return; }
+
+            const retryRes = await fetch("/api/payment/razorpay/retry", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ orderId: order.id }),
+            });
+            const retryData = await retryRes.json();
+            if (!retryRes.ok) { setRetryError(retryData.error ?? "Failed to initiate payment"); return; }
+
+            const options: RazorpayRetryOptions = {
+                key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
+                amount: retryData.amount,
+                currency: retryData.currency,
+                name: "Tanush",
+                description: "Jewellery Purchase",
+                order_id: retryData.orderId,
+                handler: async (response) => {
+                    const verifyRes = await fetch("/api/payment/razorpay/verify", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            razorpayOrderId: response.razorpay_order_id,
+                            razorpayPaymentId: response.razorpay_payment_id,
+                            razorpaySignature: response.razorpay_signature,
+                            orderId: order.id,
+                        }),
+                    });
+                    if (verifyRes.ok) {
+                        clearCart();
+                        // Reload order data to reflect PAID status
+                        const updatedOrder = await fetch(`/api/orders/${order.id}`).then((r) => r.json());
+                        setOrder(updatedOrder);
+                        setRetrying(false);
+                    } else {
+                        setRetryError("Payment verification failed. Please contact support.");
+                        setRetrying(false);
+                    }
+                },
+                prefill: {
+                    name: retryData.shippingName ?? "",
+                    email: retryData.shippingEmail ?? "",
+                    contact: retryData.shippingPhone ?? "",
+                },
+                theme: { color: "#c9a84c" },
+                modal: {
+                    ondismiss: async () => {
+                        // Check if payment actually went through despite modal close
+                        try {
+                            const statusRes = await fetch("/api/payment/razorpay/check-status", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    razorpayOrderId: retryData.orderId,
+                                    orderId: order.id,
+                                }),
+                            });
+                            const statusData = await statusRes.json();
+                            if (statusData.paid) {
+                                clearCart();
+                                const updatedOrder = await fetch(`/api/orders/${order.id}`).then((r) => r.json());
+                                setOrder(updatedOrder);
+                            }
+                        } catch { /* silent */ }
+                        setRetrying(false);
+                    },
+                },
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.open();
+        } catch {
+            setRetryError("Something went wrong. Please try again.");
+            setRetrying(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -138,6 +256,51 @@ export default function OrderDetailPage() {
                         {order.status}
                     </span>
                 </div>
+
+                {/* Payment status banner for Razorpay orders that are not yet paid */}
+                {order.paymentMethod === "RAZORPAY" && order.paymentStatus !== "PAID" && (
+                    <div
+                        className="mb-6 rounded-xl p-5"
+                        style={{
+                            background: order.paymentStatus === "FAILED" ? "#fce4ec" : "#fff8e6",
+                            border: `1px solid ${order.paymentStatus === "FAILED" ? "#f48fb1" : "#f5c842"}`,
+                        }}
+                    >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <p className="text-sm font-bold mb-1" style={{ color: order.paymentStatus === "FAILED" ? "#b71c1c" : "#a06000" }}>
+                                    {order.paymentStatus === "FAILED" ? "Payment unsuccessful" : "Payment pending"}
+                                </p>
+                                <p className="text-xs" style={{ color: order.paymentStatus === "FAILED" ? "#c62828" : "#7a5200" }}>
+                                    {order.paymentStatus === "FAILED"
+                                        ? "Your payment could not be verified. Your order is on hold. Please complete the payment to confirm your order."
+                                        : "We haven't received your payment yet. Complete the payment to confirm your order."}
+                                </p>
+                                {retryError && (
+                                    <p className="text-xs mt-2 font-semibold" style={{ color: "#b71c1c" }}>{retryError}</p>
+                                )}
+                            </div>
+                            <button
+                                onClick={handleRetryPayment}
+                                disabled={retrying}
+                                className="flex-shrink-0 px-5 py-2.5 rounded-lg text-white text-xs font-bold uppercase tracking-widest transition-all hover:opacity-90 cursor-pointer disabled:opacity-50"
+                                style={{ background: "#c9a84c" }}
+                            >
+                                {retrying ? "Processing..." : "Complete Payment"}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Success confirmation banner */}
+                {order.paymentMethod === "RAZORPAY" && order.paymentStatus === "PAID" && order.status === "CONFIRMED" && (
+                    <div className="mb-6 rounded-xl p-5" style={{ background: "#e8f5e9", border: "1px solid #a5d6a7" }}>
+                        <p className="text-sm font-bold" style={{ color: "#1b5e20" }}>Payment successful — Order confirmed!</p>
+                        <p className="text-xs mt-1" style={{ color: "#2e7d32" }}>
+                            Your payment was received and your order is now being processed.
+                        </p>
+                    </div>
+                )}
 
                 <div className="flex flex-col lg:flex-row gap-8">
                     {/* Left column */}

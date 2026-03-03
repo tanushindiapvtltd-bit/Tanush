@@ -63,6 +63,7 @@ export default function CheckoutPage() {
     const [discountApplied, setDiscountApplied] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [paymentCancelled, setPaymentCancelled] = useState(false);
 
     // Pre-fill form fields when session loads (handles async auth)
     useEffect(() => {
@@ -160,6 +161,7 @@ export default function CheckoutPage() {
         if (!validateForm()) return;
         setLoading(true);
         setError("");
+        setPaymentCancelled(false);
         try {
             // Load Razorpay SDK
             const loaded = await loadRazorpayScript();
@@ -196,7 +198,7 @@ export default function CheckoutPage() {
                 description: "Jewellery Purchase",
                 order_id: rpData.orderId,
                 handler: async (response) => {
-                    // Verify payment
+                    // Verify payment signature server-side
                     const verifyRes = await fetch("/api/payment/razorpay/verify", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -211,8 +213,9 @@ export default function CheckoutPage() {
                         clearCart();
                         router.push(`/orders/${orderData.id}`);
                     } else {
-                        setError("Payment verification failed. Please contact support.");
-                        router.push(`/orders/${orderData.id}`);
+                        // Verification failed — do NOT clear cart, show error in-page
+                        setLoading(false);
+                        setError("Payment verification failed. Your order has been saved — please contact support or retry from your orders page.");
                     }
                 },
                 prefill: {
@@ -222,10 +225,34 @@ export default function CheckoutPage() {
                 },
                 theme: { color: "#c9a84c" },
                 modal: {
-                    ondismiss: () => {
-                        setLoading(false);
-                        // Order already created, user can try again or cancel
-                        router.push(`/orders/${orderData.id}`);
+                    ondismiss: async () => {
+                        // User closed the modal — check with Razorpay if payment was actually captured
+                        setLoading(true);
+                        try {
+                            const statusRes = await fetch("/api/payment/razorpay/check-status", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    razorpayOrderId: rpData.orderId,
+                                    orderId: orderData.id,
+                                }),
+                            });
+                            const statusData = await statusRes.json();
+                            if (statusData.paid) {
+                                // Payment went through despite dismiss — clear cart and redirect
+                                clearCart();
+                                router.push(`/orders/${orderData.id}`);
+                            } else {
+                                // Genuinely not paid — stay on checkout, show actionable message
+                                setPaymentCancelled(true);
+                                setError("");
+                            }
+                        } catch {
+                            setPaymentCancelled(true);
+                            setError("");
+                        } finally {
+                            setLoading(false);
+                        }
                     },
                 },
             };
@@ -359,6 +386,25 @@ export default function CheckoutPage() {
                                     </div>
                                 )}
                             </section>
+
+                            {paymentCancelled && (
+                                <div className="mb-4 p-4 rounded-lg" style={{ background: "#fff8e6", border: "1px solid #f5c842" }}>
+                                    <p className="text-sm font-semibold mb-1" style={{ color: "#a06000" }}>Payment was not completed</p>
+                                    <p className="text-xs" style={{ color: "#7a5200" }}>
+                                        Your order has been saved but not confirmed. You can complete payment from your{" "}
+                                        <Link href="/orders" className="font-bold underline" style={{ color: "#c9a84c" }}>orders page</Link>,
+                                        or try again below.
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setPaymentCancelled(false); handleRazorpay(); }}
+                                        className="mt-3 px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg text-white transition-all hover:opacity-90 cursor-pointer"
+                                        style={{ background: "#c9a84c" }}
+                                    >
+                                        Retry Payment
+                                    </button>
+                                </div>
+                            )}
 
                             {error && (
                                 <div className="mb-6 p-3 rounded-lg text-sm" style={{ background: "#fce4ec", color: "#b71c1c", border: "1px solid #f48fb1" }}>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { ImageUploader, ThumbsUploader } from "@/components/admin/ProductImageUpload";
 
 interface Spec { label: string; value: string; }
 
@@ -22,7 +23,7 @@ export default function EditProductPage() {
     const [category, setCategory] = useState("");
     const [categoryKey, setCategoryKey] = useState("");
     const [mainImage, setMainImage] = useState("");
-    const [thumbsRaw, setThumbsRaw] = useState("");
+    const [thumbs, setThumbs] = useState<string[]>([]);
     const [description, setDescription] = useState("");
     const [inStock, setInStock] = useState(true);
     const [specs, setSpecs] = useState<Spec[]>([]);
@@ -43,7 +44,7 @@ export default function EditProductPage() {
                 setCategory(product.category ?? "");
                 setCategoryKey(product.categoryKey ?? "");
                 setMainImage(product.mainImage ?? "");
-                setThumbsRaw(Array.isArray(product.thumbs) ? product.thumbs.join(", ") : "");
+                setThumbs(Array.isArray(product.thumbs) ? product.thumbs : []);
                 setDescription(product.description ?? "");
                 setInStock(product.inStock !== false);
                 setSpecs(Array.isArray(product.specs) ? product.specs : []);
@@ -63,10 +64,10 @@ export default function EditProductPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!mainImage) { setError("Please upload a main product image."); return; }
         setError("");
         setSaving(true);
         try {
-            const thumbs = thumbsRaw.split(",").map((t) => t.trim()).filter(Boolean);
             const res = await fetch(`/api/admin/products/${id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
@@ -122,14 +123,20 @@ export default function EditProductPage() {
                         {categories.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
                     </select>
                 </div>
-                <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#888" }}>Main Image Path</label>
-                    <input value={mainImage} onChange={(e) => setMainImage(e.target.value)} required className={inputCls} style={inputStyle} />
-                </div>
-                <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#888" }}>Thumbnail Paths (comma-separated)</label>
-                    <input value={thumbsRaw} onChange={(e) => setThumbsRaw(e.target.value)} className={inputCls} style={inputStyle} />
-                </div>
+
+                <ImageUploader
+                    label="Main Product Image"
+                    value={mainImage}
+                    onChange={setMainImage}
+                    required
+                />
+
+                <ThumbsUploader
+                    label="Gallery Thumbnails"
+                    values={thumbs}
+                    onChange={setThumbs}
+                />
+
                 <div>
                     <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#888" }}>Description</label>
                     <textarea value={description} onChange={(e) => setDescription(e.target.value)} required rows={4} className={inputCls} style={inputStyle} />

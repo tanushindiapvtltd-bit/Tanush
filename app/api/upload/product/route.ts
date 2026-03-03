@@ -4,8 +4,8 @@ import { cloudinary } from "@/lib/cloudinary";
 
 export async function POST(req: NextRequest) {
     const session = await auth();
-    if (!session?.user?.id) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session?.user || session.user.role !== "ADMIN") {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     let formData: FormData;
@@ -25,8 +25,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Only images are allowed" }, { status: 400 });
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-        return NextResponse.json({ error: "File must be under 5MB" }, { status: 400 });
+    if (file.size > 10 * 1024 * 1024) {
+        return NextResponse.json({ error: "File must be under 10MB" }, { status: 400 });
     }
 
     const bytes = await file.arrayBuffer();
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 
     const result = await new Promise<{ secure_url: string }>((resolve, reject) => {
         cloudinary.uploader.upload_stream(
-            { folder: "tanush/reviews", resource_type: "image" },
+            { folder: "tanush/products", resource_type: "image" },
             (error, result) => {
                 if (error || !result) reject(error ?? new Error("Upload failed"));
                 else resolve(result);

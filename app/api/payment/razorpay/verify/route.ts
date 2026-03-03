@@ -28,6 +28,11 @@ export async function POST(req: NextRequest) {
         .digest("hex");
 
     if (expectedSignature !== razorpaySignature) {
+        // Mark as FAILED so the order page can show the correct state
+        await prisma.order.update({
+            where: { id: orderId, userId: session.user.id },
+            data: { paymentStatus: "FAILED" },
+        });
         return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
 
