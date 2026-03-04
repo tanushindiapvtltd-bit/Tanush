@@ -31,10 +31,16 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        const dbProducts = await prisma.product.findMany({
-            where: { id: { in: productIds } },
-            select: { id: true, priceNum: true, inStock: true },
-        });
+        let dbProducts;
+        try {
+            dbProducts = await prisma.product.findMany({
+                where: { id: { in: productIds } },
+                select: { id: true, priceNum: true, inStock: true },
+            });
+        } catch (dbError) {
+            console.error("[Razorpay] DB error fetching products:", dbError);
+            return NextResponse.json({ error: "Failed to fetch product details. Please try again." }, { status: 500 });
+        }
 
         if (dbProducts.length !== productIds.length) {
             return NextResponse.json({ error: "One or more products not found" }, { status: 404 });

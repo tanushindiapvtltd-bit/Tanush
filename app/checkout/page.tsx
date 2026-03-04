@@ -35,7 +35,7 @@ function loadRazorpayScript(): Promise<boolean> {
         if (typeof window !== "undefined" && window.Razorpay) { resolve(true); return; }
         const script = document.createElement("script");
         script.src = "https://checkout.razorpay.com/v1/checkout.js";
-        script.onload = () => resolve(true);
+        script.onload = () => resolve(typeof window.Razorpay === "function");
         script.onerror = () => resolve(false);
         document.body.appendChild(script);
     });
@@ -172,7 +172,7 @@ export default function CheckoutPage() {
         try {
             // Load Razorpay SDK
             const loaded = await loadRazorpayScript();
-            if (!loaded) { setError("Failed to load payment gateway. Please try again."); return; }
+            if (!loaded || !window.Razorpay) { setError("Failed to load payment gateway. Please disable any ad blockers and try again."); return; }
 
             // Create Razorpay order on server — send items so server recalculates total
             const rpRes = await fetch("/api/payment/razorpay/create-order", {
