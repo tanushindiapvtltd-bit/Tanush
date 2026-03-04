@@ -186,20 +186,10 @@ export default function CheckoutPage() {
             const rpData = await rpRes.json();
             if (!rpRes.ok) { setError(rpData.error ?? "Payment gateway error"); return; }
 
-            // Create order record in DB (with PENDING payment)
-            const orderRes = await fetch("/api/orders", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    ...getFormData(),
-                    paymentMethod: "RAZORPAY",
-                    razorpayOrderId: rpData.orderId,
-                }),
-            });
-            const orderData = await orderRes.json();
-            if (!orderRes.ok) { setError(orderData.error ?? "Failed to create order"); return; }
+            // Track whether the payment success handler has fired
+            let paymentHandled = false;
 
-            // Open Razorpay modal
+            // Open Razorpay modal — DB order is only created AFTER payment succeeds
             const options: RazorpayOptions = {
                 key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
                 amount: rpData.amount,
@@ -208,24 +198,47 @@ export default function CheckoutPage() {
                 description: "Jewellery Purchase",
                 order_id: rpData.orderId,
                 handler: async (response) => {
-                    // Verify payment signature server-side
-                    const verifyRes = await fetch("/api/payment/razorpay/verify", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            razorpayOrderId: response.razorpay_order_id,
-                            razorpayPaymentId: response.razorpay_payment_id,
-                            razorpaySignature: response.razorpay_signature,
-                            orderId: orderData.id,
-                        }),
-                    });
-                    if (verifyRes.ok) {
-                        clearCart();
-                        router.push(`/orders/${orderData.id}`);
-                    } else {
-                        // Verification failed — do NOT clear cart, show error in-page
+                    paymentHandled = true;
+                    setLoading(true);
+                    try {
+                        // Payment captured — now create the DB order
+                        const orderRes = await fetch("/api/orders", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                ...getFormData(),
+                                paymentMethod: "RAZORPAY",
+                                razorpayOrderId: response.razorpay_order_id,
+                            }),
+                        });
+                        const orderData = await orderRes.json();
+                        if (!orderRes.ok) {
+                            setError(`Payment received but order saving failed. Please contact support with your payment ID: ${response.razorpay_payment_id}`);
+                            setLoading(false);
+                            return;
+                        }
+
+                        // Verify payment signature server-side
+                        const verifyRes = await fetch("/api/payment/razorpay/verify", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                razorpayOrderId: response.razorpay_order_id,
+                                razorpayPaymentId: response.razorpay_payment_id,
+                                razorpaySignature: response.razorpay_signature,
+                                orderId: orderData.id,
+                            }),
+                        });
+                        if (verifyRes.ok) {
+                            clearCart();
+                            router.push(`/orders/${orderData.id}`);
+                        } else {
+                            setLoading(false);
+                            setError("Payment verification failed. Please contact support with payment ID: " + response.razorpay_payment_id);
+                        }
+                    } catch {
                         setLoading(false);
-                        setError("Payment verification failed. Your order has been saved — please contact support or retry from your orders page.");
+                        setError(`Payment received but order saving failed. Please contact support with payment ID: ${response.razorpay_payment_id}`);
                     }
                 },
                 prefill: {
@@ -235,32 +248,10 @@ export default function CheckoutPage() {
                 },
                 theme: { color: "#c9a84c" },
                 modal: {
-                    ondismiss: async () => {
-                        // User closed the modal — check with Razorpay if payment was actually captured
-                        setLoading(true);
-                        try {
-                            const statusRes = await fetch("/api/payment/razorpay/check-status", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                    razorpayOrderId: rpData.orderId,
-                                    orderId: orderData.id,
-                                }),
-                            });
-                            const statusData = await statusRes.json();
-                            if (statusData.paid) {
-                                // Payment went through despite dismiss — clear cart and redirect
-                                clearCart();
-                                router.push(`/orders/${orderData.id}`);
-                            } else {
-                                // Genuinely not paid — stay on checkout, show actionable message
-                                setPaymentCancelled(true);
-                                setError("");
-                            }
-                        } catch {
+                    ondismiss: () => {
+                        // Only show cancelled if payment handler never fired
+                        if (!paymentHandled) {
                             setPaymentCancelled(true);
-                            setError("");
-                        } finally {
                             setLoading(false);
                         }
                     },
@@ -404,9 +395,7 @@ export default function CheckoutPage() {
                                 <div className="mb-4 p-4 rounded-lg" style={{ background: "#fff8e6", border: "1px solid #f5c842" }}>
                                     <p className="text-sm font-semibold mb-1" style={{ color: "#a06000" }}>Payment was not completed</p>
                                     <p className="text-xs" style={{ color: "#7a5200" }}>
-                                        Your order has been saved but not confirmed. You can complete payment from your{" "}
-                                        <Link href="/orders" className="font-bold underline" style={{ color: "#c9a84c" }}>orders page</Link>,
-                                        or try again below.
+                                        No order has been placed. You can try again whenever you&apos;re ready.
                                     </p>
                                     <button
                                         type="button"
@@ -414,7 +403,7 @@ export default function CheckoutPage() {
                                         className="mt-3 px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg text-white transition-all hover:opacity-90 cursor-pointer"
                                         style={{ background: "#c9a84c" }}
                                     >
-                                        Retry Payment
+                                        Try Again
                                     </button>
                                 </div>
                             )}

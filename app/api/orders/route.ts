@@ -152,6 +152,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(order, { status: 201 });
     } catch (error) {
         console.error("[Orders] Create order error:", error);
-        return NextResponse.json({ error: "Failed to create order. Please try again." }, { status: 500 });
+        const msg = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: "Failed to create order. Please try again.", detail: msg }, { status: 500 });
     }
 }
