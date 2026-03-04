@@ -34,13 +34,15 @@ enum PaymentMethod {
 }
 
 model User {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name       String
-  email      String   @unique
-  password   String
-  newsletter Boolean  @default(false)
-  role       Role     @default(USER)
-  createdAt  DateTime @default(now()) @map("created_at")
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  email       String   @unique
+  password    String
+  newsletter  Boolean  @default(false)
+  role        Role     @default(USER)
+  rtoCount    Int      @default(0) @map("rto_count")
+  isHighRisk  Boolean  @default(false) @map("is_high_risk")
+  createdAt   DateTime @default(now()) @map("created_at")
 
   passwordResetTokens PasswordResetToken[]
   orders              Order[]
@@ -116,6 +118,8 @@ model Order {
   user             User              @relation(fields: [userId], references: [id])
   items            OrderItem[]
   deliveryTracking DeliveryTracking?
+  returnRequest    Return?
+  rtoCase          RtoCase?
 
   @@map("orders")
 }
@@ -174,10 +178,91 @@ model DeliveryTracking {
   currentStatus     String    @default("Order Placed") @map("current_status")
   currentLocation   String?   @map("current_location")
   history           Json      @default("[]")
+  isManifested      Boolean   @default(false) @map("is_manifested")
+  manifestedAt      DateTime? @map("manifested_at")
+  ndrCount          Int       @default(0) @map("ndr_count")
+  ndrReason         String?   @map("ndr_reason")
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("delivery_tracking")
+}
+
+// ── New models ──────────────────────────────────────────────────────────────
+
+model PincodeBlacklist {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pincode   String   @unique
+  reason    String?
+  addedBy   String   @map("added_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("pincode_blacklist")
+}
+
+model RetryQueue {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  operation String
+  payload   Json
+  attempts  Int      @default(0)
+  lastError String?  @map("last_error")
+  status    String   @default("PENDING")
+  orderId   String?  @map("order_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("retry_queue")
+}
+
+model WebhookLog {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  source    String   @default("delhivery")
+  payload   Json
+  signature String?
+  processed Boolean  @default(false)
+  error     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("webhook_logs")
+}
+
+model NotificationLog {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId   String   @map("order_id") @db.Uuid
+  type      String
+  event     String
+  recipient String
+  status    String   @default("sent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("notification_logs")
+}
+
+model Return {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId    String    @unique @map("order_id") @db.Uuid
+  reason     String
+  status     String    @default("REQUESTED")
+  reverseAwb String?   @map("reverse_awb")
+  approvedAt DateTime? @map("approved_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("returns")
+}
+
+model RtoCase {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId   String   @unique @map("order_id") @db.Uuid
+  reason    String?
+  refunded  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("rto_cases")
 }

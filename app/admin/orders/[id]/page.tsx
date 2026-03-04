@@ -68,6 +68,19 @@ export default function AdminOrderDetailPage() {
     const [deliveryLocation, setDeliveryLocation] = useState("");
     const [deliveryNote, setDeliveryNote] = useState("");
 
+    // Delhivery state
+    const [shipWeight, setShipWeight] = useState("0.5");
+    const [shipLength, setShipLength] = useState("10");
+    const [shipWidth, setShipWidth] = useState("10");
+    const [shipHeight, setShipHeight] = useState("10");
+    const [delhiveryLoading, setDelhiveryLoading] = useState(false);
+    const [delhiveryError, setDelhiveryError] = useState("");
+    const [liveTrackLoading, setLiveTrackLoading] = useState(false);
+    const [liveTrackData, setLiveTrackData] = useState<{
+        status: string; location: string; expectedDelivery?: string;
+        events: { status: string; location: string; timestamp: string }[];
+    } | null>(null);
+
     useEffect(() => {
         fetch(`/api/admin/orders/${id}`)
             .then((r) => r.json())
@@ -124,6 +137,79 @@ export default function AdminOrderDetailPage() {
             setOrder(await res.json());
         } finally {
             setUpdating(false);
+        }
+    };
+
+    const createDelhiveryShipment = async () => {
+        if (!order) return;
+        setDelhiveryLoading(true);
+        setDelhiveryError("");
+        try {
+            const res = await fetch("/api/admin/delhivery/create-shipment", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    orderId: order.id,
+                    weight: Number(shipWeight),
+                    length: Number(shipLength),
+                    width: Number(shipWidth),
+                    height: Number(shipHeight),
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error ?? "Failed to create shipment");
+            const updated = await fetch(`/api/admin/orders/${id}`).then((r) => r.json());
+            setOrder(updated);
+            if (updated.deliveryTracking) {
+                setTrackingNumber(updated.deliveryTracking.trackingNumber ?? "");
+                setCarrier(updated.deliveryTracking.carrier ?? "");
+                setDeliveryStatus(updated.deliveryTracking.currentStatus ?? "");
+            }
+        } catch (e) {
+            setDelhiveryError(String(e));
+        } finally {
+            setDelhiveryLoading(false);
+        }
+    };
+
+    const fetchLiveTrack = async () => {
+        const waybill = order?.deliveryTracking?.trackingNumber;
+        if (!waybill) return;
+        setLiveTrackLoading(true);
+        try {
+            const res = await fetch(`/api/admin/delhivery/track/${encodeURIComponent(waybill)}`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            setLiveTrackData(data);
+            const updated = await fetch(`/api/admin/orders/${id}`).then((r) => r.json());
+            setOrder(updated);
+        } catch (e) {
+            setDelhiveryError(String(e));
+        } finally {
+            setLiveTrackLoading(false);
+        }
+    };
+
+    const cancelDelhiveryShipment = async () => {
+        const waybill = order?.deliveryTracking?.trackingNumber;
+        if (!waybill || !order) return;
+        if (!confirm(`Cancel Delhivery shipment ${waybill}?`)) return;
+        setDelhiveryLoading(true);
+        try {
+            const res = await fetch("/api/admin/delhivery/cancel", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ waybill, orderId: order.id }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error ?? "Cancel failed");
+            const updated = await fetch(`/api/admin/orders/${id}`).then((r) => r.json());
+            setOrder(updated);
+            setLiveTrackData(null);
+        } catch (e) {
+            setDelhiveryError(String(e));
+        } finally {
+            setDelhiveryLoading(false);
         }
     };
 
@@ -198,6 +284,163 @@ export default function AdminOrderDetailPage() {
                         <div className="pt-4 flex justify-end">
                             <p className="font-bold text-lg" style={{ color: "#c9a84c" }}>Total: ₹{order.total.toLocaleString("en-IN")}</p>
                         </div>
+                    </div>
+
+                    {/* Delhivery Shipment */}
+                    <div className="rounded-xl p-6" style={{ background: "#faf7ff", border: "1px solid #e1bee7" }}>
+                        <div className="flex items-center gap-2 mb-4">
+                            <h2 className="font-bold text-sm uppercase tracking-widest" style={{ color: "#6a1b9a" }}>Delhivery</h2>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase" style={{ background: "#ede7f6", color: "#6a1b9a" }}>Partner</span>
+                        </div>
+
+                        {delhiveryError && (
+                            <div className="mb-4 p-3 rounded-lg text-xs font-semibold" style={{ background: "#fce4ec", color: "#b71c1c" }}>
+                                {delhiveryError}
+                            </div>
+                        )}
+
+                        {order.deliveryTracking?.carrier === "Delhivery" && order.deliveryTracking.trackingNumber ? (
+                            /* Waybill already created */
+                            <div>
+                                <div className="flex flex-wrap gap-4 mb-4">
+                                    <div>
+                                        <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: "#9c6db5" }}>Waybill Number</p>
+                                        <p className="text-lg font-bold font-mono" style={{ color: "#6a1b9a" }}>
+                                            {order.deliveryTracking.trackingNumber}
+                                        </p>
+                                    </div>
+                                    {order.deliveryTracking.currentStatus && (
+                                        <div>
+                                            <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: "#9c6db5" }}>Status</p>
+                                            <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>{order.deliveryTracking.currentStatus}</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                    <button
+                                        onClick={fetchLiveTrack}
+                                        disabled={liveTrackLoading || delhiveryLoading}
+                                        className="px-4 py-2 rounded-lg text-sm font-bold cursor-pointer transition-opacity hover:opacity-80 disabled:opacity-40"
+                                        style={{ background: "#ede7f6", color: "#6a1b9a" }}
+                                    >
+                                        {liveTrackLoading ? "Tracking..." : "Live Track & Sync"}
+                                    </button>
+                                    <a
+                                        href={`https://www.delhivery.com/tracking/?AWB=${order.deliveryTracking.trackingNumber}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-4 py-2 rounded-lg text-sm font-bold transition-opacity hover:opacity-80"
+                                        style={{ background: "#e3f2fd", color: "#1565c0" }}
+                                    >
+                                        Track on Delhivery ↗
+                                    </a>
+                                    <a
+                                        href={`${process.env.NEXT_PUBLIC_DELHIVERY_BASE ?? "https://staging-express.delhivery.com"}/api/p/packing_slip?wbns=${order.deliveryTracking.trackingNumber}&token=${process.env.NEXT_PUBLIC_DELHIVERY_TOKEN ?? ""}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-4 py-2 rounded-lg text-sm font-bold transition-opacity hover:opacity-80"
+                                        style={{ background: "#f1f8e9", color: "#2e7d32" }}
+                                    >
+                                        Print Label ↗
+                                    </a>
+                                    {order.status !== "DELIVERED" && order.status !== "CANCELLED" && (
+                                        <button
+                                            onClick={cancelDelhiveryShipment}
+                                            disabled={delhiveryLoading}
+                                            className="px-4 py-2 rounded-lg text-sm font-bold cursor-pointer transition-opacity hover:opacity-80 disabled:opacity-40"
+                                            style={{ background: "#fce4ec", color: "#b71c1c" }}
+                                        >
+                                            Cancel Shipment
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Live track data */}
+                                {liveTrackData && (
+                                    <div className="rounded-lg p-4 mb-3" style={{ background: "#fff", border: "1px solid #e1bee7" }}>
+                                        <div className="flex flex-wrap gap-4 mb-3">
+                                            <div>
+                                                <p className="text-[10px] uppercase tracking-widest" style={{ color: "#aaa" }}>Live Status</p>
+                                                <p className="text-sm font-bold" style={{ color: "#6a1b9a" }}>{liveTrackData.status}</p>
+                                            </div>
+                                            {liveTrackData.location && (
+                                                <div>
+                                                    <p className="text-[10px] uppercase tracking-widest" style={{ color: "#aaa" }}>Location</p>
+                                                    <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>{liveTrackData.location}</p>
+                                                </div>
+                                            )}
+                                            {liveTrackData.expectedDelivery && (
+                                                <div>
+                                                    <p className="text-[10px] uppercase tracking-widest" style={{ color: "#aaa" }}>Expected</p>
+                                                    <p className="text-sm font-semibold" style={{ color: "#2e7d32" }}>
+                                                        {new Date(liveTrackData.expectedDelivery).toLocaleDateString("en-IN")}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {liveTrackData.events.length > 0 && (
+                                            <div className="flex flex-col gap-2 max-h-40 overflow-y-auto">
+                                                {[...liveTrackData.events].reverse().map((ev, i) => (
+                                                    <div key={i} className="flex gap-2">
+                                                        <div className="mt-1 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: i === 0 ? "#c9a84c" : "#ccc" }} />
+                                                        <div>
+                                                            <p className="text-xs font-semibold" style={{ color: "#1a1a1a" }}>{ev.status}</p>
+                                                            <p className="text-[10px]" style={{ color: "#888" }}>{ev.location}</p>
+                                                            <p className="text-[10px]" style={{ color: "#bbb" }}>{new Date(ev.timestamp).toLocaleString("en-IN")}</p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            /* Create new shipment */
+                            <div>
+                                <p className="text-xs mb-4" style={{ color: "#888" }}>
+                                    Book this order directly with Delhivery to generate a waybill and update tracking automatically.
+                                </p>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                                    <div>
+                                        <label className="block text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: "#888" }}>Weight (kg)</label>
+                                        <input type="number" step="0.1" min="0.1" value={shipWeight} onChange={(e) => setShipWeight(e.target.value)}
+                                            className="w-full rounded-lg px-3 py-2 text-sm outline-none" style={{ border: "1px solid #e0d5c5" }} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: "#888" }}>Length (cm)</label>
+                                        <input type="number" min="1" value={shipLength} onChange={(e) => setShipLength(e.target.value)}
+                                            className="w-full rounded-lg px-3 py-2 text-sm outline-none" style={{ border: "1px solid #e0d5c5" }} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: "#888" }}>Width (cm)</label>
+                                        <input type="number" min="1" value={shipWidth} onChange={(e) => setShipWidth(e.target.value)}
+                                            className="w-full rounded-lg px-3 py-2 text-sm outline-none" style={{ border: "1px solid #e0d5c5" }} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: "#888" }}>Height (cm)</label>
+                                        <input type="number" min="1" value={shipHeight} onChange={(e) => setShipHeight(e.target.value)}
+                                            className="w-full rounded-lg px-3 py-2 text-sm outline-none" style={{ border: "1px solid #e0d5c5" }} />
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3 mb-3 text-xs" style={{ color: "#888" }}>
+                                    <span>Payment: <strong style={{ color: "#1a1a1a" }}>{order.paymentMethod === "COD" ? "Cash on Delivery" : "Prepaid"}</strong></span>
+                                    <span>·</span>
+                                    <span>Amount: <strong style={{ color: "#c9a84c" }}>₹{order.total.toLocaleString("en-IN")}</strong></span>
+                                    <span>·</span>
+                                    <span>PIN: <strong style={{ color: "#1a1a1a" }}>{order.shippingZip}</strong></span>
+                                </div>
+                                <button
+                                    onClick={createDelhiveryShipment}
+                                    disabled={delhiveryLoading}
+                                    className="px-5 py-2.5 rounded-lg text-sm font-bold text-white cursor-pointer transition-opacity hover:opacity-90 disabled:opacity-40"
+                                    style={{ background: "#6a1b9a" }}
+                                >
+                                    {delhiveryLoading ? "Creating Shipment..." : "Book with Delhivery"}
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Delivery Tracking Update */}

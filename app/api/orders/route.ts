@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { createShipment } from "@/lib/delhivery";
 
 function generateOrderNumber(): string {
     const timestamp = Date.now().toString(36).toUpperCase();
@@ -148,6 +149,53 @@ export async function POST(req: NextRequest) {
                 deliveryTracking: true,
             },
         });
+
+        // Fire-and-forget: auto AWB generation — order creation must never fail due to Delhivery errors
+        void (async () => {
+            try {
+                const productDesc = order.items.map(i => `${i.productName} x${i.quantity}`).join(", ");
+                const result = await createShipment({
+                    name: shippingName,
+                    address: [shippingAddress, shippingApartment].filter(Boolean).join(", "),
+                    pincode: shippingZip,
+                    city: shippingCity,
+                    state: shippingState,
+                    country: shippingCountry ?? "India",
+                    phone: shippingPhone || process.env.DELHIVERY_RETURN_PHONE || "9999999999",
+                    orderNumber: order.orderNumber,
+                    paymentMode: paymentMethod === "COD" ? "CoD" : "Prepaid",
+                    codAmount: paymentMethod === "COD" ? total : undefined,
+                    totalAmount: total,
+                    productDesc,
+                    weight: 0.5, // default weight in kg
+                    orderDate: new Date().toISOString().split("T")[0],
+                });
+                if (order.deliveryTracking) {
+                    await prisma.deliveryTracking.update({
+                        where: { orderId: order.id },
+                        data: {
+                            trackingNumber: result.waybill,
+                            carrier: "Delhivery",
+                            currentStatus: "Shipped",
+                        },
+                    });
+                    await prisma.order.update({
+                        where: { id: order.id },
+                        data: { status: "SHIPPED" },
+                    });
+                }
+            } catch (err) {
+                console.error("[AutoAWB] Failed to create shipment for order", order.id, err);
+                await prisma.retryQueue.create({
+                    data: {
+                        operation: "create_shipment",
+                        payload: { orderId: order.id },
+                        orderId: order.id,
+                        lastError: err instanceof Error ? err.message : String(err),
+                    },
+                }).catch(() => {}); // swallow DB error too
+            }
+        })();
 
         return NextResponse.json(order, { status: 201 });
     } catch (error) {

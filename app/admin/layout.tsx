@@ -12,6 +12,13 @@ const NAV = [
     { href: "/admin/users", label: "Users", icon: "👥" },
     { href: "/admin/reviews", label: "Reviews", icon: "★" },
     { href: "/admin/delivery", label: "Delivery", icon: "🚚" },
+    { href: "/admin/manifest", label: "Manifest", icon: "🗂" },
+    { href: "/admin/ndr", label: "NDR", icon: "⚠" },
+    { href: "/admin/analytics/shipping", label: "Analytics", icon: "📊" },
+    { href: "/admin/cod-remittance", label: "COD Remittance", icon: "💰" },
+    { href: "/admin/returns", label: "Returns", icon: "↩" },
+    { href: "/admin/shipments/bulk-upload", label: "Bulk Upload", icon: "📤" },
+    { href: "/admin/pincode-blacklist", label: "Pincodes", icon: "📍" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

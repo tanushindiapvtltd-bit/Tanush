@@ -102,6 +102,10 @@ export default function OrderDetailPage() {
     const [retrying, setRetrying] = useState(false);
     const [retryError, setRetryError] = useState("");
     const { clearCart } = useCart();
+    const [showReturnModal, setShowReturnModal] = useState(false);
+    const [returnReason, setReturnReason] = useState("");
+    const [returnLoading, setReturnLoading] = useState(false);
+    const [returnSuccess, setReturnSuccess] = useState(false);
 
     useEffect(() => {
         fetch(`/api/orders/${id}`)
@@ -193,6 +197,24 @@ export default function OrderDetailPage() {
         }
     };
 
+    const handleReturnRequest = async () => {
+        if (!order || !returnReason.trim()) return;
+        setReturnLoading(true);
+        try {
+            const res = await fetch("/api/shipping/reverse-pickup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ orderId: order.id, reason: returnReason }),
+            });
+            if (res.ok) {
+                setReturnSuccess(true);
+                setShowReturnModal(false);
+            }
+        } finally {
+            setReturnLoading(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen flex flex-col" style={{ background: "#faf9f6" }}>
@@ -228,6 +250,12 @@ export default function OrderDetailPage() {
         ? (() => { try { return JSON.parse(rawHistory); } catch { return []; } })()
         : [];
     const currentStepIndex = DELIVERY_STEPS.indexOf(tracking?.currentStatus ?? "Order Placed");
+
+    // Return window: within 7 days of delivery
+    const deliveredEntry = history.find(h => h.status === "Delivered" || h.status === "DELIVERED");
+    const deliveredAt = deliveredEntry ? new Date(deliveredEntry.timestamp) : null;
+    const withinReturnWindow = order.status === "DELIVERED" && !returnSuccess &&
+        (!deliveredAt || (Date.now() - deliveredAt.getTime()) < 7 * 24 * 60 * 60 * 1000);
 
     return (
         <div className="min-h-screen flex flex-col" style={{ background: "#faf9f6" }}>
@@ -314,17 +342,33 @@ export default function OrderDetailPage() {
                                 </h2>
 
                                 {tracking?.trackingNumber && (
-                                    <div className="mb-5 p-3 rounded-lg" style={{ background: "#faf9f6", border: "1px solid #e0d5c5" }}>
-                                        <p className="text-xs uppercase tracking-wider mb-1" style={{ color: "#999" }}>Tracking Number</p>
-                                        <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>
-                                            {tracking.carrier && <span className="mr-2">{tracking.carrier}</span>}
-                                            {tracking.trackingNumber}
-                                        </p>
-                                        {tracking.estimatedDelivery && (
-                                            <p className="text-xs mt-1" style={{ color: "#888" }}>
-                                                Est. delivery: {new Date(tracking.estimatedDelivery).toLocaleDateString("en-IN", { day: "numeric", month: "long" })}
-                                            </p>
-                                        )}
+                                    <div className="mb-5 p-4 rounded-xl" style={{ background: tracking.carrier === "Delhivery" ? "#faf7ff" : "#faf9f6", border: `1px solid ${tracking.carrier === "Delhivery" ? "#e1bee7" : "#e0d5c5"}` }}>
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p className="text-xs uppercase tracking-wider mb-1" style={{ color: tracking.carrier === "Delhivery" ? "#9c6db5" : "#999" }}>
+                                                    {tracking.carrier ? `${tracking.carrier} · Tracking` : "Tracking Number"}
+                                                </p>
+                                                <p className="text-sm font-bold font-mono" style={{ color: "#1a1a1a" }}>
+                                                    {tracking.trackingNumber}
+                                                </p>
+                                                {tracking.estimatedDelivery && (
+                                                    <p className="text-xs mt-1" style={{ color: "#888" }}>
+                                                        Est. delivery: {new Date(tracking.estimatedDelivery).toLocaleDateString("en-IN", { day: "numeric", month: "long" })}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            {tracking.carrier === "Delhivery" && (
+                                                <a
+                                                    href={`https://www.delhivery.com/tracking/?AWB=${tracking.trackingNumber}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-opacity hover:opacity-80"
+                                                    style={{ background: "#ede7f6", color: "#6a1b9a" }}
+                                                >
+                                                    Track on Delhivery ↗
+                                                </a>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
 
@@ -444,6 +488,29 @@ export default function OrderDetailPage() {
                             </div>
                         </div>
 
+                        {/* Return success banner */}
+                        {returnSuccess && (
+                            <div className="rounded-xl p-4" style={{ background: "#e8f5e9", border: "1px solid #a5d6a7" }}>
+                                <p className="text-sm font-bold" style={{ color: "#1b5e20" }}>Return request submitted!</p>
+                                <p className="text-xs mt-1" style={{ color: "#2e7d32" }}>Our team will review your request and arrange a pickup. You&apos;ll be contacted shortly.</p>
+                            </div>
+                        )}
+
+                        {/* Return / Replace */}
+                        {withinReturnWindow && (
+                            <div className="rounded-xl p-5" style={{ background: "#fff", border: "1px solid #e8e3db" }}>
+                                <h2 className="text-sm font-bold uppercase tracking-[0.08em] mb-2" style={{ color: "#1a1a1a" }}>Returns</h2>
+                                <p className="text-xs mb-3" style={{ color: "#888" }}>Not satisfied? Request a return within 7 days of delivery.</p>
+                                <button
+                                    onClick={() => setShowReturnModal(true)}
+                                    className="w-full py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-opacity hover:opacity-80"
+                                    style={{ background: "#fce4ec", color: "#b71c1c" }}
+                                >
+                                    Request Return / Replace
+                                </button>
+                            </div>
+                        )}
+
                         {/* Shipping Address */}
                         <div className="rounded-xl p-6" style={{ background: "#fff", border: "1px solid #e8e3db" }}>
                             <h2 className="text-sm font-bold uppercase tracking-[0.08em] mb-3" style={{ color: "#1a1a1a" }}>Shipping To</h2>
@@ -459,6 +526,41 @@ export default function OrderDetailPage() {
                 </div>
             </main>
             <Footer />
+
+            {/* Return modal */}
+            {showReturnModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: "rgba(0,0,0,0.45)" }}>
+                    <div className="w-full max-w-md rounded-2xl p-6" style={{ background: "#fff" }}>
+                        <h3 className="text-lg font-bold mb-1" style={{ fontFamily: "Georgia, serif", color: "#1a1a1a" }}>Request Return / Replace</h3>
+                        <p className="text-xs mb-4" style={{ color: "#888" }}>Tell us why you&apos;d like to return this order. Our team will arrange a pickup.</p>
+                        <textarea
+                            value={returnReason}
+                            onChange={(e) => setReturnReason(e.target.value)}
+                            placeholder="Reason for return (e.g. damaged item, wrong product, changed mind)"
+                            rows={4}
+                            className="w-full rounded-lg px-3 py-2 text-sm outline-none resize-none mb-4"
+                            style={{ border: "1px solid #e0d5c5", background: "#faf9f6" }}
+                        />
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => { setShowReturnModal(false); setReturnReason(""); }}
+                                className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-opacity hover:opacity-70"
+                                style={{ background: "#f5f5f5", color: "#555" }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleReturnRequest}
+                                disabled={returnLoading || !returnReason.trim()}
+                                className="flex-1 py-2.5 rounded-lg text-sm font-bold transition-opacity hover:opacity-80 disabled:opacity-40"
+                                style={{ background: "#b71c1c", color: "#fff" }}
+                            >
+                                {returnLoading ? "Submitting..." : "Submit Request"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

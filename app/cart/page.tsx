@@ -6,6 +6,7 @@ import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { useCart } from "@/lib/cartContext";
+import PincodeChecker from "@/components/PincodeChecker";
 
 const TAX_RATE = 0.03; // 3% (matches checkout)
 
@@ -115,6 +116,11 @@ export default function CartPage() {
                                     <span className="text-base font-bold" style={{ color: "#b84c00" }}>
                                         ₹{total.toLocaleString("en-IN")}
                                     </span>
+                                </div>
+
+                                {/* Delivery Check */}
+                                <div className="mb-4">
+                                    <PincodeChecker compact />
                                 </div>
 
                                 <Link
