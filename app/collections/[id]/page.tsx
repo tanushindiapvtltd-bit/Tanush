@@ -9,7 +9,6 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { useCart } from "@/lib/cartContext";
 import { useWishlist } from "@/lib/wishlistContext";
-import PincodeChecker from "@/components/PincodeChecker";
 
 interface Product {
     id: number;
@@ -340,11 +339,6 @@ export default function ProductDetailPage() {
                                 style={{ background: "#fff", border: `1px solid ${inWishlist ? "#c0392b" : "#e0d5c5"}`, color: inWishlist ? "#c0392b" : "#555" }}>
                                 {inWishlist ? "♥ Added to Wishlist" : "Add to Wishlist"}
                             </button>
-
-                            {/* Pincode / Delivery Check */}
-                            <div className="mb-6">
-                                <PincodeChecker compact />
-                            </div>
 
                             {/* Trust badges */}
                             <div className="flex items-center gap-6 mb-7" style={{ borderTop: "1px solid #f0e6d0", paddingTop: 18 }}>

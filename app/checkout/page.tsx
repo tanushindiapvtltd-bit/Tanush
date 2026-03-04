@@ -8,7 +8,6 @@ import { useRouter } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { useCart } from "@/lib/cartContext";
-import PincodeChecker from "@/components/PincodeChecker";
 
 type PaymentMethod = "COD" | "RAZORPAY";
 
@@ -476,11 +475,6 @@ export default function CheckoutPage() {
                                     style={{ background: discountApplied ? "#5a8a5a" : "#1a1a1a", color: "#fff" }}>
                                     {discountApplied ? "✓" : "Apply"}
                                 </button>
-                            </div>
-
-                            {/* Delivery EDD check */}
-                            <div className="mb-4">
-                                <PincodeChecker compact />
                             </div>
 
                             {/* Totals */}
