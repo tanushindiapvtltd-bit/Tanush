@@ -4,11 +4,8 @@ import Link from "next/link";
 
 const quickLinks = [
     { label: "Customer Reviews", href: "/reviews" },
-    { label: "Our Blogs", href: "/blogs" },
     { label: "Store Locator", href: "/store-locator" },
     { label: "About Us", href: "/about" },
-    { label: "Join Us", href: "/join" },
-    { label: "Gift Cards", href: "/gift-cards" },
 ];
 
 const infoLinks = [
