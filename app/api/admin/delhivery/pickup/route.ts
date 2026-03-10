@@ -18,6 +18,6 @@ export async function POST(req: NextRequest) {
 
     if (!pickupDate) return NextResponse.json({ error: "pickupDate required (YYYY-MM-DD)" }, { status: 400 });
 
-    const result = await schedulePickup({ warehouseName, pickupDate, pickupTime, expectedPackageCount, phone });
+    const result = await schedulePickup({ warehouseName, pickupDate, pickupTime, expectedPackageCount });
     return NextResponse.json(result);
 }
