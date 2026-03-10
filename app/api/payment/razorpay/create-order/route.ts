@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
                 sum + (priceMap.get(Number(item.productId)) ?? 0) * Number(item.quantity),
             0
         );
-        const shipping = shippingMethod === "express" ? 2500 : 0;
+        const shipping = shippingMethod === "express" ? 2500 : 100; // prepaid standard = ₹100
         const tax = Math.round(subtotal * 0.03);
         const total = subtotal + shipping + tax;
 

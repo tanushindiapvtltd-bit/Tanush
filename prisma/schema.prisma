@@ -33,6 +33,12 @@ enum PaymentMethod {
   RAZORPAY
 }
 
+enum ReturnStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name       String
@@ -46,6 +52,7 @@ model User {
   orders              Order[]
   reviews             Review[]
   wishlistItems       WishlistItem[]
+  returnRequests      ReturnRequest[]
 
   @@map("users")
 }
@@ -73,6 +80,9 @@ model Product {
   thumbs      Json     @default("[]")
   description String
   specs       Json     @default("[]")
+  colors      Json     @default("[]")
+  hsnCode     String   @default("") @map("hsn_code")
+  gstRate     Float    @default(0) @map("gst_rate")
   inStock     Boolean  @default(true) @map("in_stock")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -116,6 +126,7 @@ model Order {
   user             User              @relation(fields: [userId], references: [id])
   items            OrderItem[]
   deliveryTracking DeliveryTracking?
+  returnRequests   ReturnRequest[]
 
   @@map("orders")
 }
@@ -174,10 +185,28 @@ model DeliveryTracking {
   currentStatus     String    @default("Order Placed") @map("current_status")
   currentLocation   String?   @map("current_location")
   history           Json      @default("[]")
+  deliveredAt       DateTime? @map("delivered_at")
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("delivery_tracking")
+}
+
+model ReturnRequest {
+  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId       String       @map("order_id") @db.Uuid
+  userId        String       @map("user_id") @db.Uuid
+  reason        String
+  status        ReturnStatus @default(PENDING)
+  adminNote     String?      @map("admin_note")
+  returnWaybill String?      @map("return_waybill")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("return_requests")
 }

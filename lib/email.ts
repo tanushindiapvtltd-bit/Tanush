@@ -129,3 +129,56 @@ export async function sendPasswordResetEmail(to: string, name: string, token: st
 
   return resend.emails.send({ from: FROM, to: [to], subject: "Reset your Tanush password", html });
 }
+
+// ── 4. Return request approved ────────────────────────────────────────────────
+
+export async function sendReturnApprovedEmail(to: string, name: string, orderNumber: string, returnWaybill: string) {
+  const firstName = name?.split(" ")[0] ?? "there";
+  const html = emailWrapper(`
+    <p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#c9a84c;">Return Approved</p>
+    <h1 style="margin:0 0 20px;font-family:'Georgia',serif;font-size:28px;font-style:italic;color:#1a1a1a;font-weight:400;">Your Return is Approved</h1>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#4a4a4a;font-family:Arial,sans-serif;">
+      Hello ${firstName}, your return request for order <strong>${orderNumber}</strong> has been approved.
+    </p>
+    <table cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 20px;">
+      <tr>
+        <td style="padding:16px 20px;background:#faf9f6;border-left:3px solid #c9a84c;border-radius:2px;">
+          <p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#999;">Return Waybill / Tracking</p>
+          <p style="margin:0;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#1a1a1a;">${returnWaybill}</p>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0 0 16px;font-size:14px;line-height:1.7;color:#4a4a4a;font-family:Arial,sans-serif;">
+      Our courier will schedule a pickup from your address. Please keep the item(s) securely packed and ready for pickup. You will receive a refund once we inspect the returned item(s).
+    </p>
+    ${goldButton(`${APP_URL}/orders`, "View My Orders")}
+  `);
+  return resend.emails.send({ from: FROM, to: [to], subject: `Return approved — Order ${orderNumber}`, html });
+}
+
+// ── 5. Return request rejected ────────────────────────────────────────────────
+
+export async function sendReturnRejectedEmail(to: string, name: string, orderNumber: string, adminNote: string) {
+  const firstName = name?.split(" ")[0] ?? "there";
+  const html = emailWrapper(`
+    <p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#b71c1c;">Return Request</p>
+    <h1 style="margin:0 0 20px;font-family:'Georgia',serif;font-size:28px;font-style:italic;color:#1a1a1a;font-weight:400;">Return Not Approved</h1>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#4a4a4a;font-family:Arial,sans-serif;">
+      Hello ${firstName}, unfortunately your return request for order <strong>${orderNumber}</strong> could not be approved.
+    </p>
+    ${adminNote ? `
+    <table cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 20px;">
+      <tr>
+        <td style="padding:16px 20px;background:#fce4ec;border-left:3px solid #b71c1c;border-radius:2px;">
+          <p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#999;">Reason</p>
+          <p style="margin:0;font-family:Arial,sans-serif;font-size:14px;color:#4a4a4a;">${adminNote}</p>
+        </td>
+      </tr>
+    </table>` : ""}
+    <p style="margin:0 0 16px;font-size:14px;line-height:1.7;color:#4a4a4a;font-family:Arial,sans-serif;">
+      If you have further questions, please contact our support team.
+    </p>
+    ${goldButton(`${APP_URL}/orders`, "View My Orders")}
+  `);
+  return resend.emails.send({ from: FROM, to: [to], subject: `Return request update — Order ${orderNumber}`, html });
+}

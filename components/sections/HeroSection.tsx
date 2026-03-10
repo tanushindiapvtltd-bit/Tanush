@@ -4,10 +4,10 @@ import Link from "next/link";
 export default function HeroSection() {
     return (
         <section className="w-full bg-[#FAF9F6] overflow-hidden">
-            <div className="w-full max-w-7xl mx-auto px-6 py-20 md:py-28 flex flex-col-reverse md:flex-row items-center gap-14">
+            <div className="w-full max-w-7xl mx-auto px-6 py-10 md:py-14 flex flex-col-reverse md:flex-row items-center gap-10">
                 {/* ── Left: bangle visual ───────────────────────────────────── */}
                 <div className="flex-1 flex items-center justify-center w-full">
-                    <div className="relative w-full max-w-[320px] aspect-square md:w-[460px] md:h-[460px] md:max-w-none">
+                    <div className="relative w-full max-w-[240px] aspect-square md:w-[320px] md:h-[320px] md:max-w-none">
                         {/* Soft glowing circle background */}
                         <div
                             className="absolute inset-0 rounded-full"

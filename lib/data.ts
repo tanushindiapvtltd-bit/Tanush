@@ -3,8 +3,6 @@ import type { NavLink, Collection, FooterColumn, TrustItem } from "@/types";
 // ─── Navigation ────────────────────────────────────────────────────────────
 export const navLinks: NavLink[] = [
     { label: "Collections", href: "/collections" },
-    { label: "About", href: "/about" },
-    { label: "Journal", href: "/journal" },
 ];
 
 // ─── Trust Banner ──────────────────────────────────────────────────────────

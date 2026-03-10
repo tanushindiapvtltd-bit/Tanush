@@ -57,7 +57,7 @@ export default function CheckoutPage() {
     const [state, setState] = useState("");
     const [zip, setZip] = useState("");
     const [phone, setPhone] = useState("");
-    const [shippingMethod, setShippingMethod] = useState<"standard" | "express">("standard");
+
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("RAZORPAY");
     const [discountCode, setDiscountCode] = useState("");
     const [discountApplied, setDiscountApplied] = useState(false);
@@ -75,7 +75,7 @@ export default function CheckoutPage() {
                 setLastName(parts.slice(1).join(" ") ?? "");
             }
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [session?.user?.email]);
 
     // Redirect if cart is empty after localStorage hydration
@@ -83,10 +83,10 @@ export default function CheckoutPage() {
         if (hydrated && items.length === 0) {
             router.replace("/collections");
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hydrated, items.length]);
 
-    const shipping = shippingMethod === "express" ? 2500 : 0;
+    const shipping = paymentMethod === "COD" ? 150 : 100;
     const tax = Math.round(subtotal * 0.03);
     const total = subtotal + shipping + tax;
 
@@ -100,7 +100,7 @@ export default function CheckoutPage() {
         shippingState: state,
         shippingZip: zip,
         shippingCountry: country,
-        shippingMethod,
+        shippingMethod: "standard",
         subtotal,
         shippingCost: shipping,
         tax,
@@ -180,7 +180,7 @@ export default function CheckoutPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     items: items.map((i) => ({ productId: i.id, quantity: i.quantity })),
-                    shippingMethod,
+                    shippingMethod: "standard",
                 }),
             });
             const rpData = await rpRes.json();
@@ -334,59 +334,72 @@ export default function CheckoutPage() {
                                 </div>
                             </section>
 
-                            {/* Shipping Method */}
-                            <section className="mb-8">
-                                <h2 className="text-sm font-bold uppercase tracking-[0.08em] mb-4" style={{ color: "#1a1a1a" }}>Shipping Method</h2>
-                                <div className="flex flex-col gap-3">
-                                    <ShippingOption selected={shippingMethod === "standard"} onSelect={() => setShippingMethod("standard")}
-                                        title="Standard Shipping (5-7 days)" price="Free" priceGold />
-                                    <ShippingOption selected={shippingMethod === "express"} onSelect={() => setShippingMethod("express")}
-                                        title="Express Shipping (2-3 days)" price="₹2,500" />
-                                </div>
-                            </section>
+
 
                             {/* Payment */}
                             <section className="mb-10">
-                                <h2 className="text-sm font-bold uppercase tracking-[0.08em] mb-2" style={{ color: "#1a1a1a" }}>Payment Method</h2>
-                                <p className="text-xs mb-4" style={{ color: "#999" }}>All transactions are secure and encrypted.</p>
+                                <h2 className="text-sm font-bold uppercase tracking-[0.08em] mb-1" style={{ color: "#1a1a1a" }}>Payment Method</h2>
+                                <p className="text-[11px] mb-5" style={{ color: "#aaa", fontStyle: "italic" }}>All transactions are secure and encrypted.</p>
 
-                                <div className="flex gap-3 mb-5">
-                                    <PaymentTabBtn
-                                        active={paymentMethod === "RAZORPAY"}
-                                        onClick={() => setPaymentMethod("RAZORPAY")}
-                                        label="Pay Online (Razorpay)"
-                                        icon={<span className="text-[11px] font-black" style={{ color: "#1a73e8" }}>⚡</span>}
-                                    />
-                                    <PaymentTabBtn
-                                        active={paymentMethod === "COD"}
-                                        onClick={() => setPaymentMethod("COD")}
-                                        label="Cash on Delivery"
-                                        icon={<span className="text-sm">💵</span>}
-                                    />
+                                <div className="grid grid-cols-2 gap-4 mb-5">
+                                    {/* Razorpay Option */}
+                                    <button type="button" onClick={() => setPaymentMethod("RAZORPAY")}
+                                        className="relative flex flex-col items-center gap-2.5 px-4 py-5 rounded-xl text-center transition-all duration-300 cursor-pointer overflow-hidden group"
+                                        style={{
+                                            background: paymentMethod === "RAZORPAY" ? "linear-gradient(145deg, #fffbf2 0%, #fff8e8 100%)" : "#fff",
+                                            border: paymentMethod === "RAZORPAY" ? "2px solid #c9a84c" : "1px solid #e8e3db",
+                                            boxShadow: paymentMethod === "RAZORPAY" ? "0 4px 20px rgba(201,168,76,0.15)" : "0 1px 4px rgba(0,0,0,0.04)",
+                                        }}>
+                                        {paymentMethod === "RAZORPAY" && <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: "linear-gradient(90deg, transparent, #c9a84c, transparent)" }} />}
+                                        <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: paymentMethod === "RAZORPAY" ? "linear-gradient(135deg, #c9a84c, #e8c86e)" : "#f5f0e8" }}>
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={paymentMethod === "RAZORPAY" ? "#fff" : "#c9a84c"} strokeWidth={1.8}>
+                                                <rect x="1" y="4" width="22" height="16" rx="3" /><path d="M1 10h22" /><path d="M6 16h4" strokeLinecap="round" />
+                                            </svg>
+                                        </div>
+                                        <span className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: paymentMethod === "RAZORPAY" ? "#c9a84c" : "#888" }}>Pay Online</span>
+                                        <span className="text-[9px]" style={{ color: "#bbb" }}>UPI · Cards · Net Banking</span>
+                                    </button>
+
+                                    {/* COD Option */}
+                                    <button type="button" onClick={() => setPaymentMethod("COD")}
+                                        className="relative flex flex-col items-center gap-2.5 px-4 py-5 rounded-xl text-center transition-all duration-300 cursor-pointer overflow-hidden group"
+                                        style={{
+                                            background: paymentMethod === "COD" ? "linear-gradient(145deg, #fffbf2 0%, #fff8e8 100%)" : "#fff",
+                                            border: paymentMethod === "COD" ? "2px solid #c9a84c" : "1px solid #e8e3db",
+                                            boxShadow: paymentMethod === "COD" ? "0 4px 20px rgba(201,168,76,0.15)" : "0 1px 4px rgba(0,0,0,0.04)",
+                                        }}>
+                                        {paymentMethod === "COD" && <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: "linear-gradient(90deg, transparent, #c9a84c, transparent)" }} />}
+                                        <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: paymentMethod === "COD" ? "linear-gradient(135deg, #c9a84c, #e8c86e)" : "#f5f0e8" }}>
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={paymentMethod === "COD" ? "#fff" : "#c9a84c"} strokeWidth={1.8}>
+                                                <rect x="2" y="6" width="20" height="12" rx="2" /><circle cx="12" cy="12" r="3" /><path d="M6 9v6M18 9v6" />
+                                            </svg>
+                                        </div>
+                                        <span className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: paymentMethod === "COD" ? "#c9a84c" : "#888" }}>Cash on Delivery</span>
+                                        <span className="text-[9px]" style={{ color: "#bbb" }}>Pay when you receive</span>
+                                    </button>
                                 </div>
 
                                 {paymentMethod === "RAZORPAY" && (
-                                    <div className="rounded-lg p-4" style={{ border: "1px solid #e0d5c5", background: "#fffbf2" }}>
-                                        <p className="text-sm" style={{ color: "#555" }}>
-                                            You will be redirected to Razorpay secure checkout. Pay via UPI, card, net banking, or wallets.
-                                        </p>
-                                        <div className="flex gap-2 mt-3 text-xs" style={{ color: "#888" }}>
-                                            <span>🔒 Secure</span>
-                                            <span>·</span>
-                                            <span>💳 Cards</span>
-                                            <span>·</span>
-                                            <span>📱 UPI</span>
-                                            <span>·</span>
-                                            <span>🏦 Net Banking</span>
+                                    <div className="rounded-xl p-4 flex items-start gap-3" style={{ background: "linear-gradient(135deg, #fffdf7, #fef9ed)", border: "1px solid #f0e6d0" }}>
+                                        <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5" style={{ background: "linear-gradient(135deg, #c9a84c, #e8c86e)" }}>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2}><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>
+                                        </div>
+                                        <div>
+                                            <p className="text-[12px] font-semibold mb-1" style={{ color: "#1a1a1a" }}>Secure Razorpay Checkout</p>
+                                            <p className="text-[11px] leading-relaxed" style={{ color: "#888" }}>Redirected to Razorpay's encrypted gateway. Pay via UPI, debit/credit cards, net banking, or wallets.</p>
                                         </div>
                                     </div>
                                 )}
 
                                 {paymentMethod === "COD" && (
-                                    <div className="rounded-lg p-4" style={{ border: "1px solid #e0d5c5", background: "#f9fdf9" }}>
-                                        <p className="text-sm" style={{ color: "#555" }}>
-                                            Pay with cash when your order is delivered. Additional ₹50 COD fee may apply.
-                                        </p>
+                                    <div className="rounded-xl p-4 flex items-start gap-3" style={{ background: "#f8faf8", border: "1px solid #e2ebe2" }}>
+                                        <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5" style={{ background: "linear-gradient(135deg, #6b9b6b, #8bbb8b)" }}>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2}><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                        </div>
+                                        <div>
+                                            <p className="text-[12px] font-semibold mb-1" style={{ color: "#1a1a1a" }}>Pay on Delivery</p>
+                                            <p className="text-[11px] leading-relaxed" style={{ color: "#888" }}>Pay with cash when your order arrives. COD shipping is ₹150.</p>
+                                        </div>
                                     </div>
                                 )}
                             </section>
@@ -480,7 +493,7 @@ export default function CheckoutPage() {
                             {/* Totals */}
                             <div className="flex flex-col gap-2.5 pt-4 mb-5" style={{ borderTop: "1px solid #f0e6d0" }}>
                                 <SummaryRow label="Subtotal" value={`₹${subtotal.toLocaleString("en-IN")}`} />
-                                <SummaryRow label="Shipping" value={shipping > 0 ? `₹${shipping.toLocaleString("en-IN")}` : "Free"} valueColor={shipping === 0 ? "#c9a84c" : undefined} />
+                                <SummaryRow label="Shipping" value={`₹${shipping.toLocaleString("en-IN")}`} />
                                 <SummaryRow label="Taxes (3%)" value={`₹${tax.toLocaleString("en-IN")}`} />
                             </div>
 
@@ -502,11 +515,17 @@ export default function CheckoutPage() {
                                 {loading ? "Processing..." : paymentMethod === "COD" ? "Place Order" : "Pay Now"}
                             </button>
 
-                            <div className="flex justify-center gap-8 pt-2">
-                                {[{ icon: "🔒", label: "Secure Checkout" }, { icon: "📦", label: "Tracked Shipping" }, { icon: "✨", label: "Eco Packaging" }].map((b) => (
-                                    <div key={b.label} className="flex flex-col items-center gap-1">
-                                        <span className="text-lg">{b.icon}</span>
-                                        <span className="text-[9px] uppercase tracking-wider font-semibold" style={{ color: "#999" }}>{b.label}</span>
+                            <div className="flex justify-between pt-4 px-2" style={{ borderTop: "1px solid #f0ece4" }}>
+                                {[
+                                    { label: "SSL Secure", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" strokeWidth={1.5}><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg> },
+                                    { label: "Free Returns", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" strokeWidth={1.5}><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" /></svg> },
+                                    { label: "Tracked", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" strokeWidth={1.5}><rect x="1" y="3" width="15" height="13" rx="2" /><path d="M16 8h4l3 3v5h-7V8z" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></svg> },
+                                ].map((b) => (
+                                    <div key={b.label} className="flex flex-col items-center gap-1.5">
+                                        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "#faf5ea" }}>
+                                            {b.icon}
+                                        </div>
+                                        <span className="text-[8px] uppercase tracking-[0.12em] font-bold" style={{ color: "#b0a48a" }}>{b.label}</span>
                                     </div>
                                 ))}
                             </div>

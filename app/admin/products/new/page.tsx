@@ -10,8 +10,15 @@ interface Spec {
     value: string;
 }
 
-const inputCls = "w-full rounded-lg px-4 py-2.5 text-sm outline-none";
-const inputStyle = { border: "1px solid #e0d5c5", background: "#fff" };
+interface ColorVariant {
+    name: string;
+    hex: string;
+    image: string;
+    sizes: string[];
+}
+
+const inputCls = "w-full rounded-xl px-4 py-2.5 text-sm outline-none";
+const inputStyle = { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff" };
 
 export default function NewProductPage() {
     const router = useRouter();
@@ -27,7 +34,10 @@ export default function NewProductPage() {
     const [thumbs, setThumbs] = useState<string[]>([]);
     const [description, setDescription] = useState("");
     const [inStock, setInStock] = useState(true);
+    const [hsnCode, setHsnCode] = useState("");
+    const [gstRate, setGstRate] = useState("0");
     const [specs, setSpecs] = useState<Spec[]>([{ label: "", value: "" }]);
+    const [colors, setColors] = useState<ColorVariant[]>([]);
 
     const categories = [
         { label: "Bridal", key: "bridal" },
@@ -46,6 +56,12 @@ export default function NewProductPage() {
         setSpecs((prev) => prev.map((s, idx) => idx === i ? { ...s, [field]: val } : s));
     };
 
+    const addColor = () => setColors((prev) => [...prev, { name: "", hex: "#c9a84c", image: "", sizes: ["Free Size"] }]);
+    const removeColor = (i: number) => setColors((prev) => prev.filter((_, idx) => idx !== i));
+    const updateColor = (i: number, field: keyof ColorVariant, val: string | string[]) => {
+        setColors((prev) => prev.map((c, idx) => idx === i ? { ...c, [field]: val } : c));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!mainImage) { setError("Please upload a main product image."); return; }
@@ -59,7 +75,10 @@ export default function NewProductPage() {
                     name, price, priceNum: parseInt(priceNum), category, categoryKey,
                     mainImage, thumbs, description,
                     specs: specs.filter((s) => s.label && s.value),
+                    colors,
                     inStock,
+                    hsnCode,
+                    gstRate: parseFloat(gstRate) || 0,
                 }),
             });
             if (!res.ok) {
@@ -75,33 +94,44 @@ export default function NewProductPage() {
 
     return (
         <div className="max-w-2xl">
-            <Link href="/admin/products" className="text-xs font-semibold uppercase tracking-widest hover:opacity-70 mb-6 inline-block" style={{ color: "#c9a84c" }}>
+            <Link href="/admin/products" className="text-xs font-semibold uppercase tracking-[0.15em] hover:opacity-70 mb-6 inline-block" style={{ color: "#c9a84c" }}>
                 ← Products
             </Link>
-            <h1 className="text-2xl font-bold mb-8" style={{ color: "#1a1a1a" }}>Add New Product</h1>
+            <h1 className="text-2xl font-bold mb-8" style={{ color: "#fff" }}>Add New Product</h1>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                 <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#888" }}>Product Name</label>
+                    <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>Product Name</label>
                     <input value={name} onChange={(e) => setName(e.target.value)} required placeholder="e.g. Gold Tone Bangle Set" className={inputCls} style={inputStyle} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#888" }}>Price Display</label>
+                        <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>Price Display</label>
                         <input value={price} onChange={(e) => setPrice(e.target.value)} required placeholder="₹599" className={inputCls} style={inputStyle} />
                     </div>
                     <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#888" }}>Price (₹ numeric)</label>
+                        <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>Price (₹ numeric)</label>
                         <input type="number" value={priceNum} onChange={(e) => setPriceNum(e.target.value)} required placeholder="599" min="1" className={inputCls} style={inputStyle} />
                     </div>
                 </div>
 
                 <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#888" }}>Category</label>
+                    <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>Category</label>
                     <select value={categoryKey} onChange={(e) => handleCategoryChange(e.target.value)} className={inputCls} style={inputStyle}>
                         {categories.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
                     </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>HSN Code</label>
+                        <input value={hsnCode} onChange={(e) => setHsnCode(e.target.value)} placeholder="e.g. 7117" className={inputCls} style={inputStyle} />
+                    </div>
+                    <div>
+                        <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>GST Rate (%)</label>
+                        <input type="number" value={gstRate} onChange={(e) => setGstRate(e.target.value)} placeholder="0" min="0" max="100" step="0.01" className={inputCls} style={inputStyle} />
+                    </div>
                 </div>
 
                 <ImageUploader
@@ -118,19 +148,19 @@ export default function NewProductPage() {
                 />
 
                 <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#888" }}>Description</label>
+                    <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>Description</label>
                     <textarea value={description} onChange={(e) => setDescription(e.target.value)} required rows={4} placeholder="Product description..." className={inputCls} style={inputStyle} />
                 </div>
 
                 <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: "#888" }}>Specifications</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-3" style={{ color: "rgba(255,255,255,0.35)" }}>Specifications</p>
                     {specs.map((spec, i) => (
                         <div key={i} className="flex gap-3 mb-2 items-center">
                             <input value={spec.label} onChange={(e) => updateSpec(i, "label", e.target.value)}
-                                placeholder="Label (e.g. Material)" className="flex-1 rounded-lg px-3 py-2 text-sm outline-none" style={inputStyle} />
+                                placeholder="Label (e.g. Material)" className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={inputStyle} />
                             <input value={spec.value} onChange={(e) => updateSpec(i, "value", e.target.value)}
-                                placeholder="Value (e.g. Gold Plated)" className="flex-1 rounded-lg px-3 py-2 text-sm outline-none" style={inputStyle} />
-                            <button type="button" onClick={() => removeSpec(i)} className="text-red-400 hover:text-red-600 cursor-pointer text-lg leading-none">✕</button>
+                                placeholder="Value (e.g. Gold Plated)" className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={inputStyle} />
+                            <button type="button" onClick={() => removeSpec(i)} className="hover:opacity-70 cursor-pointer text-lg leading-none" style={{ color: "#ef5350" }}>✕</button>
                         </div>
                     ))}
                     <button type="button" onClick={addSpec} className="text-xs font-semibold mt-1 cursor-pointer hover:opacity-70" style={{ color: "#c9a84c" }}>
@@ -138,20 +168,99 @@ export default function NewProductPage() {
                     </button>
                 </div>
 
+                {/* Color Variants */}
+                <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-3" style={{ color: "rgba(255,255,255,0.35)" }}>Color Variants</p>
+                    {colors.map((color, i) => (
+                        <div key={i} className="mb-4 p-4 rounded-2xl" style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}>
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-5 h-5 rounded-full" style={{ background: color.hex, border: "1px solid rgba(255,255,255,0.1)" }} />
+                                    <span className="text-xs font-semibold" style={{ color: "rgba(255,255,255,0.8)" }}>{color.name || "Unnamed Color"}</span>
+                                </div>
+                                <button type="button" onClick={() => removeColor(i)} className="hover:opacity-70 cursor-pointer text-sm" style={{ color: "#ef5350" }}>✕ Remove</button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 mb-3">
+                                <div>
+                                    <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1" style={{ color: "rgba(255,255,255,0.35)" }}>Color Name</label>
+                                    <input
+                                        value={color.name}
+                                        onChange={(e) => updateColor(i, "name", e.target.value)}
+                                        placeholder="e.g. Gold, Silver, Rose Gold"
+                                        className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+                                        style={inputStyle}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1" style={{ color: "rgba(255,255,255,0.35)" }}>Hex Color</label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="color"
+                                            value={color.hex}
+                                            onChange={(e) => updateColor(i, "hex", e.target.value)}
+                                            className="w-10 h-10 rounded-xl cursor-pointer"
+                                            style={{ border: "1px solid rgba(255,255,255,0.08)" }}
+                                        />
+                                        <input
+                                            value={color.hex}
+                                            onChange={(e) => updateColor(i, "hex", e.target.value)}
+                                            placeholder="#c9a84c"
+                                            className="flex-1 rounded-xl px-3 py-2 text-sm outline-none font-mono"
+                                            style={inputStyle}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="mb-3">
+                                <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1" style={{ color: "rgba(255,255,255,0.35)" }}>Available Sizes (comma-separated)</label>
+                                <input
+                                    value={color.sizes.join(", ")}
+                                    onChange={(e) => updateColor(i, "sizes", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
+                                    placeholder="e.g. 2.2, 2.4, 2.6, 2.8 or Free Size"
+                                    className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+                                    style={inputStyle}
+                                />
+                                {color.sizes.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-2">
+                                        {color.sizes.map((s, si) => (
+                                            <span key={si} className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(201,168,76,0.15)", color: "#e2c975" }}>{s}</span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <ImageUploader
+                                    label="Color Image (optional)"
+                                    value={color.image}
+                                    onChange={(url) => updateColor(i, "image", url)}
+                                />
+                            </div>
+                        </div>
+                    ))}
+                    <button
+                        type="button"
+                        onClick={addColor}
+                        className="flex items-center gap-2 text-xs font-semibold mt-1 cursor-pointer hover:opacity-70 px-4 py-2 rounded-xl"
+                        style={{ color: "#c9a84c", border: "1px dashed rgba(201,168,76,0.4)", background: "rgba(201,168,76,0.05)" }}
+                    >
+                        + Add Color Variant
+                    </button>
+                </div>
+
                 <label className="flex items-center gap-3 cursor-pointer">
                     <input type="checkbox" checked={inStock} onChange={(e) => setInStock(e.target.checked)} className="cursor-pointer w-4 h-4" />
-                    <span className="text-sm" style={{ color: "#555" }}>In Stock</span>
+                    <span className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>In Stock</span>
                 </label>
 
-                {error && <p className="text-sm text-red-500">{error}</p>}
+                {error && <p className="text-sm" style={{ color: "#ef5350" }}>{error}</p>}
 
                 <div className="flex gap-3 pt-2">
                     <button type="submit" disabled={saving}
-                        className="px-6 py-3 rounded-lg text-sm font-bold uppercase tracking-widest text-white hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
-                        style={{ background: "#c9a84c" }}>
+                        className="px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-wide hover:opacity-90 transition-all cursor-pointer disabled:opacity-50"
+                        style={{ background: "linear-gradient(135deg, #c9a84c, #e2c975)", color: "#0c0c0c", boxShadow: "0 4px 15px rgba(201,168,76,0.3)" }}>
                         {saving ? "Saving..." : "Create Product"}
                     </button>
-                    <Link href="/admin/products" className="px-6 py-3 rounded-lg text-sm font-semibold hover:opacity-70 transition-opacity" style={{ color: "#888" }}>
+                    <Link href="/admin/products" className="px-6 py-3 rounded-xl text-sm font-semibold hover:opacity-70 transition-opacity" style={{ color: "rgba(255,255,255,0.4)" }}>
                         Cancel
                     </Link>
                 </div>

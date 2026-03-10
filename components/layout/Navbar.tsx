@@ -162,7 +162,7 @@ function SearchBar() {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="hidden md:flex items-center relative">
+        <form onSubmit={handleSubmit} className="hidden md:flex items-center relative w-full max-w-md">
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#c9a84c" strokeWidth={2} className="absolute left-3 pointer-events-none">
                 <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" strokeLinecap="round" />
             </svg>
@@ -171,7 +171,7 @@ function SearchBar() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search..."
-                className="pl-8 pr-4 py-1.5 text-xs rounded-full outline-none transition-all w-36 focus:w-48"
+                className="pl-8 pr-4 py-1.5 text-xs rounded-full outline-none transition-all w-full"
                 style={{ border: "1px solid #e0d5c5", background: "#faf9f6", color: "#1a1a1a" }}
                 onFocus={(e) => (e.target.style.borderColor = "#c9a84c")}
                 onBlur={(e) => (e.target.style.borderColor = "#e0d5c5")}
@@ -194,18 +194,13 @@ export default function Navbar() {
                     <Image src="/tanush-logo-transparent.png" alt="Tanush logo" width={240} height={60} className="object-contain h-[60px] w-auto" priority />
                 </Link>
 
-                {/* Centre Nav */}
-                <nav className="hidden md:flex items-center gap-8" aria-label="Main navigation">
-                    {navLinks.map((link) => (
-                        <Link key={link.href} href={link.href} className="text-sm text-[#4a4a4a] hover:text-[#C9A84C] transition-colors duration-200 tracking-wide no-underline">
-                            {link.label}
-                        </Link>
-                    ))}
-                </nav>
+                {/* Centre Search Bar */}
+                <div className="hidden md:flex flex-1 justify-center px-8">
+                    <SearchBar />
+                </div>
 
                 {/* Right Icons */}
                 <div className="flex items-center gap-4">
-                    <SearchBar />
                     <WishlistButton />
                     <CartButton />
                     <UserMenu />

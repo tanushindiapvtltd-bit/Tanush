@@ -9,6 +9,13 @@ import Footer from "@/components/layout/Footer";
 import { useCart } from "@/lib/cartContext";
 import { useWishlist } from "@/lib/wishlistContext";
 
+interface ColorVariant {
+    name: string;
+    hex: string;
+    image: string;
+    sizes: string[];
+}
+
 interface Product {
     id: number;
     name: string;
@@ -18,6 +25,7 @@ interface Product {
     categoryKey: string;
     mainImage: string;
     inStock: boolean;
+    colors: ColorVariant[];
 }
 
 const categories = [
@@ -177,10 +185,28 @@ function ProductCard({ product }: { product: Product }) {
                         {product.name}
                     </h3>
                 </Link>
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-2">
                     <span className="text-sm font-bold" style={{ color: "#c9a84c" }}>{product.price}</span>
                     <span className="text-xs line-through" style={{ color: "#bbb" }}>₹{originalPrice.toLocaleString("en-IN")}</span>
                 </div>
+
+                {/* Color swatches */}
+                {product.colors && product.colors.length > 0 && (
+                    <div className="flex items-center gap-1.5 mb-3">
+                        {product.colors.slice(0, 4).map((c, ci) => (
+                            <div
+                                key={ci}
+                                title={c.name}
+                                className="rounded-full border"
+                                style={{ width: 14, height: 14, background: c.hex, border: "1px solid #e0d5c5", flexShrink: 0 }}
+                            />
+                        ))}
+                        {product.colors.length > 4 && (
+                            <span className="text-[10px]" style={{ color: "#aaa" }}>+{product.colors.length - 4}</span>
+                        )}
+                    </div>
+                )}
+
                 <div className="flex items-center gap-2">
                     <button onClick={handleAddToCart} disabled={!product.inStock}
                         className="flex-1 py-2.5 rounded-md text-[10px] font-bold uppercase tracking-[0.14em] flex items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer disabled:opacity-50"

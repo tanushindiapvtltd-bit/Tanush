@@ -48,13 +48,13 @@ export function ImageUploader({ label, value, onChange, required }: ImageUploade
 
     return (
         <div>
-            <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#888" }}>
+            <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>
                 {label}{required && " *"}
             </label>
 
             {value ? (
                 <div className="flex items-start gap-4">
-                    <div className="relative rounded-lg overflow-hidden flex-shrink-0" style={{ width: 100, height: 100, background: "#f5ede0", border: "1px solid #e0d5c5" }}>
+                    <div className="relative rounded-xl overflow-hidden flex-shrink-0" style={{ width: 100, height: 100, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
                         <Image src={value} alt="Product image" fill style={{ objectFit: "cover" }} sizes="100px" />
                     </div>
                     <div className="flex flex-col gap-2 pt-1">
@@ -62,16 +62,16 @@ export function ImageUploader({ label, value, onChange, required }: ImageUploade
                             type="button"
                             onClick={() => inputRef.current?.click()}
                             disabled={uploading}
-                            className="px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all hover:opacity-80 cursor-pointer disabled:opacity-50"
-                            style={{ border: "1px solid #e0d5c5", background: "#fff", color: "#555" }}
+                            className="px-4 py-2 text-xs font-bold uppercase tracking-wide rounded-xl transition-all hover:opacity-80 cursor-pointer disabled:opacity-50"
+                            style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.6)" }}
                         >
                             {uploading ? "Uploading..." : "Change Image"}
                         </button>
                         <button
                             type="button"
                             onClick={() => onChange("")}
-                            className="px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all hover:opacity-80 cursor-pointer"
-                            style={{ border: "1px solid #f48fb1", background: "#fce4ec", color: "#b71c1c" }}
+                            className="px-4 py-2 text-xs font-bold uppercase tracking-wide rounded-xl transition-all hover:opacity-80 cursor-pointer"
+                            style={{ border: "1px solid rgba(183,28,28,0.15)", background: "rgba(183,28,28,0.12)", color: "#ef5350" }}
                         >
                             Remove
                         </button>
@@ -82,18 +82,18 @@ export function ImageUploader({ label, value, onChange, required }: ImageUploade
                     onClick={() => inputRef.current?.click()}
                     onDrop={handleDrop}
                     onDragOver={(e) => e.preventDefault()}
-                    className="flex flex-col items-center justify-center gap-2 rounded-xl cursor-pointer transition-all"
+                    className="flex flex-col items-center justify-center gap-2 rounded-2xl cursor-pointer transition-all"
                     style={{
-                        border: "2px dashed #e0d5c5",
-                        background: uploading ? "#fffbf2" : "#faf9f6",
+                        border: "2px dashed rgba(201,168,76,0.25)",
+                        background: uploading ? "rgba(201,168,76,0.05)" : "rgba(255,255,255,0.02)",
                         minHeight: 120,
                         padding: 24,
                     }}
                 >
                     {uploading ? (
                         <>
-                            <div className="w-6 h-6 rounded-full border-2 animate-spin" style={{ borderColor: "#e0d5c5", borderTopColor: "#c9a84c" }} />
-                            <span className="text-xs" style={{ color: "#aaa" }}>Uploading...</span>
+                            <div className="w-6 h-6 rounded-full border-2 animate-spin" style={{ borderColor: "rgba(201,168,76,0.2)", borderTopColor: "#c9a84c" }} />
+                            <span className="text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>Uploading...</span>
                         </>
                     ) : (
                         <>
@@ -102,14 +102,14 @@ export function ImageUploader({ label, value, onChange, required }: ImageUploade
                                 <circle cx="8.5" cy="8.5" r="1.5" />
                                 <polyline points="21 15 16 10 5 21" />
                             </svg>
-                            <span className="text-xs font-semibold" style={{ color: "#888" }}>Click or drag image here</span>
-                            <span className="text-[10px]" style={{ color: "#bbb" }}>JPG, PNG, WebP up to 10MB</span>
+                            <span className="text-xs font-semibold" style={{ color: "rgba(255,255,255,0.45)" }}>Click or drag image here</span>
+                            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.2)" }}>JPG, PNG, WebP up to 10MB</span>
                         </>
                     )}
                 </div>
             )}
 
-            {error && <p className="text-xs mt-1.5" style={{ color: "#e74c3c" }}>{error}</p>}
+            {error && <p className="text-xs mt-1.5" style={{ color: "#ef5350" }}>{error}</p>}
 
             <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif"
                 className="hidden" onChange={handleFile} />
@@ -157,10 +157,10 @@ export function ThumbsUploader({ label, values, onChange }: ThumbsUploaderProps)
 
     return (
         <div>
-            <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#888" }}>{label}</label>
+            <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>{label}</label>
             <div className="flex flex-wrap gap-3 items-start">
                 {values.map((url, i) => (
-                    <div key={i} className="relative rounded-lg overflow-hidden flex-shrink-0" style={{ width: 80, height: 80 }}>
+                    <div key={i} className="relative rounded-xl overflow-hidden flex-shrink-0" style={{ width: 80, height: 80, border: "1px solid rgba(255,255,255,0.08)" }}>
                         <Image src={url} alt={`Thumb ${i + 1}`} fill style={{ objectFit: "cover" }} sizes="80px" />
                         <button
                             type="button"
@@ -178,23 +178,23 @@ export function ThumbsUploader({ label, values, onChange }: ThumbsUploaderProps)
                     type="button"
                     onClick={() => inputRef.current?.click()}
                     disabled={uploading}
-                    className="flex flex-col items-center justify-center gap-1.5 rounded-lg cursor-pointer transition-all disabled:opacity-50"
-                    style={{ width: 80, height: 80, border: "2px dashed #e0d5c5", background: "#faf9f6" }}
+                    className="flex flex-col items-center justify-center gap-1.5 rounded-xl cursor-pointer transition-all disabled:opacity-50"
+                    style={{ width: 80, height: 80, border: "2px dashed rgba(201,168,76,0.25)", background: "rgba(255,255,255,0.02)" }}
                 >
                     {uploading ? (
-                        <div className="w-5 h-5 rounded-full border-2 animate-spin" style={{ borderColor: "#e0d5c5", borderTopColor: "#c9a84c" }} />
+                        <div className="w-5 h-5 rounded-full border-2 animate-spin" style={{ borderColor: "rgba(201,168,76,0.2)", borderTopColor: "#c9a84c" }} />
                     ) : (
                         <>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" strokeWidth={2}>
                                 <line x1="12" y1="5" x2="12" y2="19" />
                                 <line x1="5" y1="12" x2="19" y2="12" />
                             </svg>
-                            <span className="text-[9px] uppercase tracking-wider font-semibold" style={{ color: "#aaa" }}>Add</span>
+                            <span className="text-[9px] uppercase tracking-wider font-semibold" style={{ color: "rgba(255,255,255,0.3)" }}>Add</span>
                         </>
                     )}
                 </button>
             </div>
-            {error && <p className="text-xs mt-1.5" style={{ color: "#e74c3c" }}>{error}</p>}
+            {error && <p className="text-xs mt-1.5" style={{ color: "#ef5350" }}>{error}</p>}
             <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif"
                 className="hidden" onChange={handleFiles} />
         </div>

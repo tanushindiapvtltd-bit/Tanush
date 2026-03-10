@@ -65,6 +65,7 @@ export async function PATCH(
             }),
             ...(currentStatus && { currentStatus }),
             ...(currentLocation !== undefined && { currentLocation }),
+            ...(currentStatus === "Delivered" && { deliveredAt: new Date() }),
             history,
         },
     });

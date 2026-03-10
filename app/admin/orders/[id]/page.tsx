@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import DelhiveryCard from "@/components/admin/DelhiveryCard";
 
 interface TrackingHistory {
     status: string;
@@ -52,6 +53,8 @@ interface Order {
 
 const ORDER_STATUSES = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"];
 const DELIVERY_STATUSES = ["Order Placed", "Confirmed", "Processing", "Shipped", "Out for Delivery", "Delivered"];
+
+const inputStyle = { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff" };
 
 export default function AdminOrderDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -129,17 +132,17 @@ export default function AdminOrderDetailPage() {
 
     if (loading) return (
         <div className="flex justify-center py-20">
-            <div className="w-8 h-8 rounded-full border-2 animate-spin" style={{ borderColor: "#e0d5c5", borderTopColor: "#c9a84c" }} />
+            <div className="w-10 h-10 rounded-full border-2 animate-spin" style={{ borderColor: "rgba(201,168,76,0.2)", borderTopColor: "#c9a84c" }} />
         </div>
     );
-    if (!order) return <p style={{ color: "#888" }}>Order not found</p>;
+    if (!order) return <p style={{ color: "rgba(255,255,255,0.4)" }}>Order not found</p>;
 
     const rawHistory = order.deliveryTracking?.history;
     const history: TrackingHistory[] = Array.isArray(rawHistory)
         ? rawHistory
         : typeof rawHistory === "string"
-        ? (() => { try { return JSON.parse(rawHistory); } catch { return []; } })()
-        : [];
+            ? (() => { try { return JSON.parse(rawHistory); } catch { return []; } })()
+            : [];
 
     return (
         <div>
@@ -151,8 +154,8 @@ export default function AdminOrderDetailPage() {
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
                 <div>
-                    <h1 className="text-xl font-bold" style={{ color: "#1a1a1a" }}>{order.orderNumber}</h1>
-                    <p className="text-sm" style={{ color: "#888" }}>
+                    <h1 className="text-xl font-bold" style={{ color: "#fff" }}>{order.orderNumber}</h1>
+                    <p className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
                         {order.user.name} · {order.user.email} · {new Date(order.createdAt).toLocaleDateString("en-IN")}
                     </p>
                 </div>
@@ -166,9 +169,10 @@ export default function AdminOrderDetailPage() {
                             disabled={updating || order.status === s}
                             className="px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide transition-all cursor-pointer disabled:opacity-50"
                             style={{
-                                background: order.status === s ? "#c9a84c" : "#fff",
-                                color: order.status === s ? "#fff" : "#888",
-                                border: "1px solid " + (order.status === s ? "#c9a84c" : "#e0d5c5"),
+                                background: order.status === s ? "linear-gradient(135deg, #c9a84c, #e2c975)" : "rgba(255,255,255,0.04)",
+                                color: order.status === s ? "#0c0c0c" : "rgba(255,255,255,0.4)",
+                                border: "1px solid " + (order.status === s ? "transparent" : "rgba(255,255,255,0.08)"),
+                                boxShadow: order.status === s ? "0 2px 10px rgba(201,168,76,0.25)" : "none",
                             }}
                         >
                             {s}
@@ -181,91 +185,97 @@ export default function AdminOrderDetailPage() {
                 {/* Left: Items + tracking */}
                 <div className="lg:col-span-2 flex flex-col gap-6">
                     {/* Order Items */}
-                    <div className="rounded-xl p-6" style={{ background: "#fff", border: "1px solid #e8e3db" }}>
-                        <h2 className="font-bold text-sm uppercase tracking-widest mb-4" style={{ color: "#1a1a1a" }}>Order Items</h2>
+                    <div className="rounded-2xl p-6" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                        <h2 className="font-bold text-sm uppercase tracking-[0.15em] mb-4" style={{ color: "rgba(255,255,255,0.7)" }}>Order Items</h2>
                         {order.items.map((item) => (
-                            <div key={item.id} className="flex gap-4 items-center py-3" style={{ borderBottom: "1px solid #f9f6f1" }}>
-                                <div className="relative rounded-lg overflow-hidden flex-shrink-0" style={{ width: 56, height: 56, background: "#f5ede0" }}>
+                            <div key={item.id} className="flex gap-4 items-center py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                                <div className="relative rounded-xl overflow-hidden flex-shrink-0" style={{ width: 56, height: 56, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.06)" }}>
                                     <Image src={item.productImage} alt={item.productName} fill style={{ objectFit: "cover" }} sizes="56px" />
                                 </div>
                                 <div className="flex-1">
-                                    <p className="font-semibold text-sm" style={{ color: "#1a1a1a" }}>{item.productName}</p>
-                                    <p className="text-xs" style={{ color: "#888" }}>Qty: {item.quantity}</p>
+                                    <p className="font-semibold text-sm" style={{ color: "rgba(255,255,255,0.85)" }}>{item.productName}</p>
+                                    <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>Qty: {item.quantity}</p>
                                 </div>
-                                <p className="font-bold text-sm" style={{ color: "#c9a84c" }}>₹{(item.price * item.quantity).toLocaleString("en-IN")}</p>
+                                <p className="font-bold text-sm" style={{ color: "#e2c975" }}>₹{(item.price * item.quantity).toLocaleString("en-IN")}</p>
                             </div>
                         ))}
                         <div className="pt-4 flex justify-end">
-                            <p className="font-bold text-lg" style={{ color: "#c9a84c" }}>Total: ₹{order.total.toLocaleString("en-IN")}</p>
+                            <p className="font-bold text-lg" style={{ color: "#e2c975" }}>Total: ₹{order.total.toLocaleString("en-IN")}</p>
                         </div>
                     </div>
 
+                    {/* Delhivery Integration */}
+                    <DelhiveryCard order={order} onUpdate={async () => {
+                        const res = await fetch(`/api/admin/orders/${id}`);
+                        setOrder(await res.json());
+                    }} />
+
                     {/* Delivery Tracking Update */}
-                    <div className="rounded-xl p-6" style={{ background: "#fff", border: "1px solid #e8e3db" }}>
-                        <h2 className="font-bold text-sm uppercase tracking-widest mb-5" style={{ color: "#1a1a1a" }}>Update Delivery Tracking</h2>
+                    <div className="rounded-2xl p-6" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                        <h2 className="font-bold text-sm uppercase tracking-[0.15em] mb-5" style={{ color: "rgba(255,255,255,0.7)" }}>Update Delivery Tracking</h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                             <div>
-                                <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#888" }}>Tracking Number</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>Tracking Number</label>
                                 <input value={trackingNumber} onChange={(e) => setTrackingNumber(e.target.value)}
-                                    className="w-full rounded-lg px-4 py-2.5 text-sm outline-none" style={{ border: "1px solid #e0d5c5" }}
+                                    className="w-full rounded-xl px-4 py-2.5 text-sm outline-none" style={inputStyle}
                                     placeholder="e.g. SR12345678" />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#888" }}>Carrier</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>Carrier</label>
                                 <select value={carrier} onChange={(e) => setCarrier(e.target.value)}
-                                    className="w-full rounded-lg px-4 py-2.5 text-sm outline-none" style={{ border: "1px solid #e0d5c5" }}>
+                                    className="w-full rounded-xl px-4 py-2.5 text-sm outline-none" style={inputStyle}>
                                     <option value="">Select carrier</option>
                                     {["Shiprocket", "Blue Dart", "DTDC", "Delhivery", "FedEx", "Ekart"].map((c) => <option key={c}>{c}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#888" }}>Estimated Delivery</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>Estimated Delivery</label>
                                 <input type="date" value={estimatedDelivery} onChange={(e) => setEstimatedDelivery(e.target.value)}
-                                    className="w-full rounded-lg px-4 py-2.5 text-sm outline-none" style={{ border: "1px solid #e0d5c5" }} />
+                                    className="w-full rounded-xl px-4 py-2.5 text-sm outline-none" style={inputStyle} />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#888" }}>Delivery Status</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>Delivery Status</label>
                                 <select value={deliveryStatus} onChange={(e) => setDeliveryStatus(e.target.value)}
-                                    className="w-full rounded-lg px-4 py-2.5 text-sm outline-none" style={{ border: "1px solid #e0d5c5" }}>
+                                    className="w-full rounded-xl px-4 py-2.5 text-sm outline-none" style={inputStyle}>
                                     <option value="">Select status</option>
                                     {DELIVERY_STATUSES.map((s) => <option key={s}>{s}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#888" }}>Current Location</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>Current Location</label>
                                 <input value={deliveryLocation} onChange={(e) => setDeliveryLocation(e.target.value)}
-                                    className="w-full rounded-lg px-4 py-2.5 text-sm outline-none" style={{ border: "1px solid #e0d5c5" }}
+                                    className="w-full rounded-xl px-4 py-2.5 text-sm outline-none" style={inputStyle}
                                     placeholder="e.g. Mumbai Hub" />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5" style={{ color: "#888" }}>Add Note (optional)</label>
+                                <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>Add Note (optional)</label>
                                 <input value={deliveryNote} onChange={(e) => setDeliveryNote(e.target.value)}
-                                    className="w-full rounded-lg px-4 py-2.5 text-sm outline-none" style={{ border: "1px solid #e0d5c5" }}
+                                    className="w-full rounded-xl px-4 py-2.5 text-sm outline-none" style={inputStyle}
                                     placeholder="e.g. Package received at warehouse" />
                             </div>
                         </div>
                         <button
                             onClick={updateDelivery}
                             disabled={updating}
-                            className="px-6 py-2.5 rounded-lg text-sm font-bold uppercase tracking-widest text-white transition-opacity hover:opacity-90 cursor-pointer disabled:opacity-50"
-                            style={{ background: "#c9a84c" }}
+                            className="px-6 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide transition-all cursor-pointer disabled:opacity-50"
+                            style={{ background: "linear-gradient(135deg, #c9a84c, #e2c975)", color: "#0c0c0c", boxShadow: "0 4px 15px rgba(201,168,76,0.3)" }}
                         >
                             {updating ? "Updating..." : "Update Tracking"}
                         </button>
 
                         {/* History */}
                         {history.length > 0 && (
-                            <div className="mt-6 pt-5" style={{ borderTop: "1px solid #f0e6d0" }}>
-                                <h3 className="font-bold text-xs uppercase tracking-widest mb-4" style={{ color: "#888" }}>Tracking History</h3>
+                            <div className="mt-6 pt-5" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                                <h3 className="font-bold text-xs uppercase tracking-[0.15em] mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>Tracking History</h3>
                                 <div className="flex flex-col gap-3">
                                     {[...history].reverse().map((entry, i) => (
                                         <div key={i} className="flex gap-3">
-                                            <div className="mt-1 w-2 h-2 rounded-full flex-shrink-0" style={{ background: i === 0 ? "#c9a84c" : "#ddd" }} />
+                                            <div className="mt-1 w-2 h-2 rounded-full flex-shrink-0" style={{ background: i === 0 ? "#c9a84c" : "rgba(255,255,255,0.15)" }} />
                                             <div>
-                                                <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>{entry.status}</p>
-                                                {entry.description && <p className="text-xs" style={{ color: "#888" }}>{entry.description}</p>}
-                                                {entry.location && <p className="text-xs" style={{ color: "#aaa" }}>{entry.location}</p>}
-                                                <p className="text-[10px]" style={{ color: "#bbb" }}>{new Date(entry.timestamp).toLocaleString("en-IN")}</p>
+                                                <p className="text-sm font-semibold" style={{ color: "rgba(255,255,255,0.85)" }}>{entry.status}</p>
+                                                {entry.description && <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>{entry.description}</p>}
+                                                {entry.location && <p className="text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>{entry.location}</p>}
+                                                <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.2)" }}>{new Date(entry.timestamp).toLocaleString("en-IN")}</p>
                                             </div>
                                         </div>
                                     ))}
@@ -278,30 +288,33 @@ export default function AdminOrderDetailPage() {
                 {/* Right: Details */}
                 <div className="flex flex-col gap-5">
                     {/* Payment */}
-                    <div className="rounded-xl p-5" style={{ background: "#fff", border: "1px solid #e8e3db" }}>
-                        <h2 className="font-bold text-xs uppercase tracking-widest mb-3" style={{ color: "#888" }}>Payment</h2>
-                        <p className="font-semibold text-sm" style={{ color: "#1a1a1a" }}>
+                    <div className="rounded-2xl p-5" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                        <h2 className="font-bold text-xs uppercase tracking-[0.15em] mb-3" style={{ color: "rgba(255,255,255,0.35)" }}>Payment</h2>
+                        <p className="font-semibold text-sm" style={{ color: "rgba(255,255,255,0.85)" }}>
                             {order.paymentMethod === "COD" ? "Cash on Delivery" : "Razorpay"}
                         </p>
-                        <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase"
-                            style={{ background: order.paymentStatus === "PAID" ? "#e8f5e9" : "#fff8e6", color: order.paymentStatus === "PAID" ? "#2e7d32" : "#d4860e" }}>
+                        <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase"
+                            style={{
+                                background: order.paymentStatus === "PAID" ? "rgba(46,125,50,0.12)" : "rgba(212,134,14,0.12)",
+                                color: order.paymentStatus === "PAID" ? "#81c784" : "#f0b641",
+                            }}>
                             {order.paymentStatus}
                         </span>
-                        <div className="mt-3 pt-3 flex flex-col gap-1.5 text-sm" style={{ borderTop: "1px solid #f0e6d0" }}>
-                            <div className="flex justify-between"><span style={{ color: "#888" }}>Subtotal</span><span>₹{order.subtotal.toLocaleString("en-IN")}</span></div>
-                            <div className="flex justify-between"><span style={{ color: "#888" }}>Shipping</span><span>₹{order.shippingCost.toLocaleString("en-IN")}</span></div>
-                            <div className="flex justify-between"><span style={{ color: "#888" }}>Tax</span><span>₹{order.tax.toLocaleString("en-IN")}</span></div>
-                            <div className="flex justify-between font-bold pt-1" style={{ borderTop: "1px solid #f0e6d0" }}>
-                                <span>Total</span><span style={{ color: "#c9a84c" }}>₹{order.total.toLocaleString("en-IN")}</span>
+                        <div className="mt-3 pt-3 flex flex-col gap-1.5 text-sm" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                            <div className="flex justify-between"><span style={{ color: "rgba(255,255,255,0.4)" }}>Subtotal</span><span style={{ color: "rgba(255,255,255,0.7)" }}>₹{order.subtotal.toLocaleString("en-IN")}</span></div>
+                            <div className="flex justify-between"><span style={{ color: "rgba(255,255,255,0.4)" }}>Shipping</span><span style={{ color: "rgba(255,255,255,0.7)" }}>₹{order.shippingCost.toLocaleString("en-IN")}</span></div>
+                            <div className="flex justify-between"><span style={{ color: "rgba(255,255,255,0.4)" }}>Tax</span><span style={{ color: "rgba(255,255,255,0.7)" }}>₹{order.tax.toLocaleString("en-IN")}</span></div>
+                            <div className="flex justify-between font-bold pt-1" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                                <span style={{ color: "rgba(255,255,255,0.9)" }}>Total</span><span style={{ color: "#e2c975" }}>₹{order.total.toLocaleString("en-IN")}</span>
                             </div>
                         </div>
                     </div>
 
                     {/* Shipping */}
-                    <div className="rounded-xl p-5" style={{ background: "#fff", border: "1px solid #e8e3db" }}>
-                        <h2 className="font-bold text-xs uppercase tracking-widest mb-3" style={{ color: "#888" }}>Shipping Address</h2>
-                        <div className="text-sm flex flex-col gap-0.5" style={{ color: "#555" }}>
-                            <p className="font-semibold">{order.shippingName}</p>
+                    <div className="rounded-2xl p-5" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                        <h2 className="font-bold text-xs uppercase tracking-[0.15em] mb-3" style={{ color: "rgba(255,255,255,0.35)" }}>Shipping Address</h2>
+                        <div className="text-sm flex flex-col gap-0.5" style={{ color: "rgba(255,255,255,0.55)" }}>
+                            <p className="font-semibold" style={{ color: "rgba(255,255,255,0.85)" }}>{order.shippingName}</p>
                             <p>{order.shippingEmail}</p>
                             {order.shippingPhone && <p>{order.shippingPhone}</p>}
                             <p className="mt-1">{order.shippingAddress}</p>

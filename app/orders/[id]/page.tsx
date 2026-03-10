@@ -101,6 +101,13 @@ export default function OrderDetailPage() {
     const [loading, setLoading] = useState(true);
     const [retrying, setRetrying] = useState(false);
     const [retryError, setRetryError] = useState("");
+    const [cancelling, setCancelling] = useState(false);
+    const [cancelError, setCancelError] = useState("");
+    const [returnReason, setReturnReason] = useState("");
+    const [returnSubmitting, setReturnSubmitting] = useState(false);
+    const [returnError, setReturnError] = useState("");
+    const [returnSuccess, setReturnSuccess] = useState(false);
+    const [existingReturn, setExistingReturn] = useState<{ status: string; reason: string; returnWaybill: string | null; adminNote: string | null } | null>(null);
     const { clearCart } = useCart();
 
     useEffect(() => {
@@ -108,7 +115,53 @@ export default function OrderDetailPage() {
             .then((r) => r.json())
             .then((data) => setOrder(data))
             .finally(() => setLoading(false));
+        // Fetch existing return request
+        fetch(`/api/orders/${id}/return`)
+            .then((r) => r.ok ? r.json() : [])
+            .then((data: { status: string; reason: string; returnWaybill: string | null; adminNote: string | null }[]) => {
+                const active = data.find((r) => r.status !== "REJECTED");
+                if (active) setExistingReturn(active);
+            })
+            .catch(() => {});
     }, [id]);
+
+    const handleCancelOrder = async () => {
+        if (!order || !confirm("Are you sure you want to cancel this order?")) return;
+        setCancelling(true);
+        setCancelError("");
+        try {
+            const res = await fetch(`/api/orders/${order.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "cancel" }),
+            });
+            const data = await res.json();
+            if (!res.ok) { setCancelError(data.error ?? "Failed to cancel order"); return; }
+            setOrder((prev) => prev ? { ...prev, status: "CANCELLED" } : prev);
+        } finally {
+            setCancelling(false);
+        }
+    };
+
+    const handleReturnRequest = async () => {
+        if (!order || !returnReason.trim()) return;
+        setReturnSubmitting(true);
+        setReturnError("");
+        try {
+            const res = await fetch(`/api/orders/${order.id}/return`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ reason: returnReason.trim() }),
+            });
+            const data = await res.json();
+            if (!res.ok) { setReturnError(data.error ?? "Failed to submit return request"); return; }
+            setReturnSuccess(true);
+            setExistingReturn({ status: "PENDING", reason: returnReason.trim(), returnWaybill: null, adminNote: null });
+            setReturnReason("");
+        } finally {
+            setReturnSubmitting(false);
+        }
+    };
 
     const handleRetryPayment = async () => {
         if (!order) return;
@@ -249,13 +302,30 @@ export default function OrderDetailPage() {
                             Placed on {new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
                         </p>
                     </div>
-                    <span
-                        className="px-4 py-1.5 rounded-full text-sm font-semibold uppercase tracking-wide w-fit"
-                        style={{ background: statusStyle.bg, color: statusStyle.text }}
-                    >
-                        {order.status}
-                    </span>
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <span
+                            className="px-4 py-1.5 rounded-full text-sm font-semibold uppercase tracking-wide"
+                            style={{ background: statusStyle.bg, color: statusStyle.text }}
+                        >
+                            {order.status}
+                        </span>
+                        {["PENDING", "CONFIRMED"].includes(order.status) && (
+                            <button
+                                onClick={handleCancelOrder}
+                                disabled={cancelling}
+                                className="px-4 py-1.5 rounded-full text-sm font-semibold uppercase tracking-wide transition-opacity hover:opacity-80 cursor-pointer disabled:opacity-50"
+                                style={{ background: "#fce4ec", color: "#b71c1c" }}
+                            >
+                                {cancelling ? "Cancelling..." : "Cancel Order"}
+                            </button>
+                        )}
+                    </div>
                 </div>
+                {cancelError && (
+                    <div className="mb-4 p-3 rounded-lg text-sm" style={{ background: "#fce4ec", color: "#b71c1c", border: "1px solid #f48fb1" }}>
+                        {cancelError}
+                    </div>
+                )}
 
                 {/* Payment status banner for Razorpay orders that are not yet paid */}
                 {order.paymentMethod === "RAZORPAY" && order.paymentStatus !== "PAID" && (
@@ -316,10 +386,23 @@ export default function OrderDetailPage() {
                                 {tracking?.trackingNumber && (
                                     <div className="mb-5 p-3 rounded-lg" style={{ background: "#faf9f6", border: "1px solid #e0d5c5" }}>
                                         <p className="text-xs uppercase tracking-wider mb-1" style={{ color: "#999" }}>Tracking Number</p>
-                                        <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>
-                                            {tracking.carrier && <span className="mr-2">{tracking.carrier}</span>}
-                                            {tracking.trackingNumber}
-                                        </p>
+                                        <div className="flex items-center justify-between gap-2">
+                                            <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>
+                                                {tracking.carrier && <span className="mr-2">{tracking.carrier}</span>}
+                                                {tracking.trackingNumber}
+                                            </p>
+                                            {tracking.carrier === "Delhivery" && (
+                                                <a
+                                                    href={`https://www.delhivery.com/tracking/${tracking.trackingNumber}`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="flex-shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full hover:opacity-80 transition-opacity"
+                                                    style={{ background: "#fce4e4", color: "#e63946" }}
+                                                >
+                                                    Track on Delhivery ↗
+                                                </a>
+                                            )}
+                                        </div>
                                         {tracking.estimatedDelivery && (
                                             <p className="text-xs mt-1" style={{ color: "#888" }}>
                                                 Est. delivery: {new Date(tracking.estimatedDelivery).toLocaleDateString("en-IN", { day: "numeric", month: "long" })}
@@ -402,6 +485,73 @@ export default function OrderDetailPage() {
                                 ))}
                             </div>
                         </div>
+
+                        {/* Return Request — only for DELIVERED orders */}
+                        {order.status === "DELIVERED" && (() => {
+                            const returnStatusStyle: Record<string, { bg: string; text: string }> = {
+                                PENDING: { bg: "#fff8e6", text: "#d4860e" },
+                                APPROVED: { bg: "#e8f5e9", text: "#2e7d32" },
+                                REJECTED: { bg: "#fce4ec", text: "#b71c1c" },
+                            };
+                            if (existingReturn) {
+                                const s = returnStatusStyle[existingReturn.status] ?? { bg: "#f5f5f5", text: "#555" };
+                                return (
+                                    <div className="rounded-xl p-6" style={{ background: "#fff", border: "1px solid #e8e3db" }}>
+                                        <h2 className="text-sm font-bold uppercase tracking-[0.08em] mb-4" style={{ color: "#1a1a1a" }}>Return Request</h2>
+                                        <div className="mb-3">
+                                            <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider" style={{ background: s.bg, color: s.text }}>
+                                                {existingReturn.status}
+                                            </span>
+                                        </div>
+                                        <p className="text-sm mb-2" style={{ color: "#555" }}><span style={{ color: "#aaa" }}>Reason: </span>{existingReturn.reason}</p>
+                                        {existingReturn.adminNote && (
+                                            <p className="text-sm mb-2" style={{ color: "#555" }}><span style={{ color: "#aaa" }}>Note: </span>{existingReturn.adminNote}</p>
+                                        )}
+                                        {existingReturn.returnWaybill && (
+                                            <div className="mt-3 p-3 rounded-lg" style={{ background: "#e8f5e9", border: "1px solid #a5d6a7" }}>
+                                                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#999" }}>Return Pickup Waybill</p>
+                                                <p className="text-sm font-mono font-bold" style={{ color: "#2e7d32" }}>{existingReturn.returnWaybill}</p>
+                                                <p className="text-xs mt-1" style={{ color: "#555" }}>Our courier will pick up the item from your address.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            }
+                            return (
+                                <div className="rounded-xl p-6" style={{ background: "#fff", border: "1px solid #e8e3db" }}>
+                                    <h2 className="text-sm font-bold uppercase tracking-[0.08em] mb-2" style={{ color: "#1a1a1a" }}>Request a Return</h2>
+                                    <p className="text-xs mb-4" style={{ color: "#aaa" }}>Returns accepted within 3 days of delivery.</p>
+                                    {returnSuccess ? (
+                                        <div className="p-3 rounded-lg" style={{ background: "#e8f5e9", border: "1px solid #a5d6a7" }}>
+                                            <p className="text-sm font-semibold" style={{ color: "#2e7d32" }}>Return request submitted!</p>
+                                            <p className="text-xs mt-1" style={{ color: "#388e3c" }}>We&apos;ll review your request and notify you by email.</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <textarea
+                                                value={returnReason}
+                                                onChange={(e) => setReturnReason(e.target.value)}
+                                                placeholder="Please describe why you want to return this item..."
+                                                rows={3}
+                                                className="w-full rounded-lg px-4 py-3 text-sm outline-none resize-none mb-3"
+                                                style={{ border: "1px solid #e0d5c5" }}
+                                            />
+                                            {returnError && (
+                                                <p className="mb-3 text-xs font-semibold px-3 py-2 rounded-lg" style={{ background: "#fce4ec", color: "#b71c1c" }}>{returnError}</p>
+                                            )}
+                                            <button
+                                                onClick={handleReturnRequest}
+                                                disabled={returnSubmitting || !returnReason.trim()}
+                                                className="px-5 py-2.5 rounded-lg text-sm font-bold uppercase tracking-widest text-white transition-opacity hover:opacity-90 cursor-pointer disabled:opacity-50"
+                                                style={{ background: "#1a1a1a" }}
+                                            >
+                                                {returnSubmitting ? "Submitting..." : "Submit Return Request"}
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            );
+                        })()}
                     </div>
 
                     {/* Right column */}

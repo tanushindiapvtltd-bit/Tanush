@@ -10,6 +10,13 @@ import Footer from "@/components/layout/Footer";
 import { useCart } from "@/lib/cartContext";
 import { useWishlist } from "@/lib/wishlistContext";
 
+interface ColorVariant {
+    name: string;
+    hex: string;
+    image: string;
+    sizes: string[];
+}
+
 interface Product {
     id: number;
     name: string;
@@ -22,6 +29,7 @@ interface Product {
     description: string;
     specs: { label: string; value: string }[];
     inStock: boolean;
+    colors: ColorVariant[];
 }
 
 interface Review {
@@ -34,7 +42,7 @@ interface Review {
     user: { name: string };
 }
 
-const sizes = ["2.2", "2.4", "2.6", "2.8"];
+const defaultSizes = ["2.2", "2.4", "2.6", "2.8"];
 
 function Stars({ rating, size = 14, interactive = false, onSelect }: {
     rating: number; size?: number; interactive?: boolean; onSelect?: (r: number) => void;
@@ -78,6 +86,7 @@ export default function ProductDetailPage() {
 
     const [activeImage, setActiveImage] = useState(0);
     const [selectedSize, setSelectedSize] = useState("2.4");
+    const [selectedColorIndex, setSelectedColorIndex] = useState<number | null>(null);
     const [detailsOpen, setDetailsOpen] = useState(false);
     const [careOpen, setCareOpen] = useState(false);
     const [added, setAdded] = useState(false);
@@ -220,7 +229,11 @@ export default function ProductDetailPage() {
     }
 
     const originalPrice = Math.round(product.priceNum * 1.15);
-    const activeThumb = product.thumbs[activeImage] ?? product.mainImage;
+    const colors = Array.isArray(product.colors) ? product.colors : [];
+    const selectedColor = selectedColorIndex !== null ? colors[selectedColorIndex] ?? null : null;
+    const activeColorImage = selectedColor?.image || "";
+    const activeThumb = activeColorImage || (product.thumbs[activeImage] ?? product.mainImage);
+    const activeSizes = selectedColor ? selectedColor.sizes : (colors.length > 0 ? colors[0].sizes : defaultSizes);
     const inWishlist = isInWishlist(product.id);
 
     return (
@@ -246,9 +259,9 @@ export default function ProductDetailPage() {
                         <div className="flex flex-col md:flex-row gap-4">
                             <div className="hidden md:flex flex-col gap-3" style={{ width: 64 }}>
                                 {product.thumbs.map((src, i) => (
-                                    <button key={i} onClick={() => setActiveImage(i)}
+                                    <button key={i} onClick={() => { setActiveImage(i); setSelectedColorIndex(null); }}
                                         className="relative rounded-md overflow-hidden transition-all duration-200 cursor-pointer"
-                                        style={{ width: 64, height: 64, border: activeImage === i ? "2px solid #c9a84c" : "1px solid #e0d5c5", background: "#f5ede0" }}>
+                                        style={{ width: 64, height: 64, border: activeImage === i && !selectedColor ? "2px solid #c9a84c" : "1px solid #e0d5c5", background: "#f5ede0" }}>
                                         <Image src={src} alt={`View ${i + 1}`} fill style={{ objectFit: "cover" }} sizes="64px" />
                                     </button>
                                 ))}
@@ -266,9 +279,9 @@ export default function ProductDetailPage() {
                             {/* Mobile thumbnails */}
                             <div className="flex md:hidden gap-2 overflow-x-auto pb-2 -mx-1 px-1">
                                 {product.thumbs.map((src, i) => (
-                                    <button key={i} onClick={() => setActiveImage(i)}
+                                    <button key={i} onClick={() => { setActiveImage(i); setSelectedColorIndex(null); }}
                                         className="relative rounded-md overflow-hidden transition-all duration-200 cursor-pointer flex-shrink-0"
-                                        style={{ width: 72, height: 72, border: activeImage === i ? "2px solid #c9a84c" : "1px solid #e0d5c5", background: "#f5ede0" }}>
+                                        style={{ width: 72, height: 72, border: activeImage === i && !selectedColor ? "2px solid #c9a84c" : "1px solid #e0d5c5", background: "#f5ede0" }}>
                                         <Image src={src} alt={`View ${i + 1}`} fill style={{ objectFit: "cover" }} sizes="72px" />
                                     </button>
                                 ))}
@@ -300,17 +313,51 @@ export default function ProductDetailPage() {
                             </p>
                             <p className="text-[13px] leading-relaxed mb-7" style={{ color: "#555" }}>{product.description}</p>
 
+                            {/* Color variant selector */}
+                            {colors.length > 0 && (
+                                <div className="mb-5">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <span className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: "#1a1a1a" }}>Color</span>
+                                        {selectedColor && (
+                                            <span className="text-[10px] font-semibold" style={{ color: "#c9a84c" }}>{selectedColor.name}</span>
+                                        )}
+                                    </div>
+                                    <div className="flex gap-3 flex-wrap">
+                                        {colors.map((c, ci) => (
+                                            <button
+                                                key={ci}
+                                                onClick={() => {
+                                                    setSelectedColorIndex(ci === selectedColorIndex ? null : ci);
+                                                    // Reset size when color changes
+                                                    setSelectedSize(c.sizes[0] ?? "");
+                                                }}
+                                                title={c.name}
+                                                className="relative rounded-full transition-all cursor-pointer"
+                                                style={{
+                                                    width: 28,
+                                                    height: 28,
+                                                    background: c.hex,
+                                                    border: selectedColorIndex === ci ? "3px solid #c9a84c" : "2px solid #e0d5c5",
+                                                    boxShadow: selectedColorIndex === ci ? "0 0 0 2px #fffbf2, 0 0 0 4px #c9a84c" : "none",
+                                                    outline: "none",
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Size selector */}
                             <div className="mb-7">
                                 <div className="flex items-center justify-between mb-3">
                                     <span className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: "#1a1a1a" }}>Select Size</span>
                                     <button className="text-[10px] font-semibold underline decoration-dotted" style={{ color: "#c9a84c" }}>Size Guide</button>
                                 </div>
-                                <div className="flex gap-3">
-                                    {sizes.map((s) => (
+                                <div className="flex gap-3 flex-wrap">
+                                    {activeSizes.map((s) => (
                                         <button key={s} onClick={() => setSelectedSize(s)}
                                             className="flex-1 py-3 rounded-md text-sm font-semibold transition-all cursor-pointer"
-                                            style={{ border: selectedSize === s ? "2px solid #c9a84c" : "1px solid #e0d5c5", background: selectedSize === s ? "#fffbf2" : "#fff", color: selectedSize === s ? "#c9a84c" : "#555" }}>
+                                            style={{ border: selectedSize === s ? "2px solid #c9a84c" : "1px solid #e0d5c5", background: selectedSize === s ? "#fffbf2" : "#fff", color: selectedSize === s ? "#c9a84c" : "#555", minWidth: 56 }}>
                                             {s}
                                         </button>
                                     ))}
@@ -340,18 +387,7 @@ export default function ProductDetailPage() {
                                 {inWishlist ? "♥ Added to Wishlist" : "Add to Wishlist"}
                             </button>
 
-                            {/* Trust badges */}
-                            <div className="flex items-center gap-6 mb-7" style={{ borderTop: "1px solid #f0e6d0", paddingTop: 18 }}>
-                                {[{ icon: "🚚", title: "Free Shipping", desc: "Pan India delivery" }, { icon: "💎", title: "Certified", desc: "Hallmarked Gold" }].map((badge) => (
-                                    <div key={badge.title} className="flex items-center gap-2.5">
-                                        <span className="text-xl">{badge.icon}</span>
-                                        <div>
-                                            <p className="text-[10px] font-extrabold uppercase tracking-wider" style={{ color: "#1a1a1a" }}>{badge.title}</p>
-                                            <p className="text-[10px]" style={{ color: "#999" }}>{badge.desc}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+
 
                             {/* Product Details accordion */}
                             <div style={{ borderTop: "1px solid #e8e3db" }}>
