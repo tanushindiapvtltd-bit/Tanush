@@ -150,33 +150,144 @@ function WishlistButton() {
     );
 }
 
+type ProductSuggestion = {
+    id: number;
+    name: string;
+    category: string;
+    price: number;
+    mainImage: string;
+};
+
+function highlightMatch(text: string, query: string): React.ReactNode {
+    const idx = text.toLowerCase().indexOf(query.toLowerCase());
+    if (idx === -1 || !query) return text;
+    return (
+        <>
+            {text.slice(0, idx)}
+            <span className="font-semibold text-[#1a1a1a]">{text.slice(idx, idx + query.length)}</span>
+            {text.slice(idx + query.length)}
+        </>
+    );
+}
+
 function SearchBar() {
     const [query, setQuery] = useState("");
+    const [suggestions, setSuggestions] = useState<ProductSuggestion[]>([]);
+    const [open, setOpen] = useState(false);
+    const [activeIndex, setActiveIndex] = useState(-1);
     const router = useRouter();
+    const containerRef = useRef<HTMLDivElement>(null);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const fetchSuggestions = useCallback(async (q: string) => {
+        if (q.length < 2) { setSuggestions([]); setOpen(false); return; }
+        try {
+            const res = await fetch(`/api/products/search?q=${encodeURIComponent(q)}`);
+            const data: ProductSuggestion[] = await res.json();
+            setSuggestions(data.slice(0, 6));
+            setOpen(data.length > 0);
+        } catch { /* ignore */ }
+    }, []);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setQuery(val);
+        setActiveIndex(-1);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => fetchSuggestions(val.trim()), 250);
+    };
+
+    const goToSearch = useCallback(() => {
+        if (query.trim().length >= 2) {
+            setOpen(false);
+            router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+        }
+    }, [query, router]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (query.trim().length >= 2) {
-            router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+        goToSearch();
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (!open) return;
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setActiveIndex(i => Math.min(i + 1, suggestions.length - 1));
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setActiveIndex(i => Math.max(i - 1, -1));
+        } else if (e.key === "Escape") {
+            setOpen(false);
+            setActiveIndex(-1);
+        } else if (e.key === "Enter" && activeIndex >= 0) {
+            e.preventDefault();
+            const s = suggestions[activeIndex];
+            setQuery(s.name);
+            setOpen(false);
+            router.push(`/collections/${s.id}`);
         }
     };
 
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, []);
+
     return (
-        <form onSubmit={handleSubmit} className="hidden md:flex items-center relative w-full max-w-md">
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#c9a84c" strokeWidth={2} className="absolute left-3 pointer-events-none">
-                <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" strokeLinecap="round" />
-            </svg>
-            <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search..."
-                className="pl-8 pr-4 py-1.5 text-xs rounded-full outline-none transition-all w-full"
-                style={{ border: "1px solid #e0d5c5", background: "#faf9f6", color: "#1a1a1a" }}
-                onFocus={(e) => (e.target.style.borderColor = "#c9a84c")}
-                onBlur={(e) => (e.target.style.borderColor = "#e0d5c5")}
-            />
-        </form>
+        <div ref={containerRef} className="relative w-full max-w-md">
+            <form onSubmit={handleSubmit} className="flex items-center relative">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#c9a84c" strokeWidth={2} className="absolute left-3 pointer-events-none">
+                    <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" strokeLinecap="round" />
+                </svg>
+                <input
+                    type="text"
+                    value={query}
+                    onChange={handleChange}
+                    onKeyDown={handleKeyDown}
+                    onFocus={(e) => { e.target.style.borderColor = "#c9a84c"; if (suggestions.length > 0) setOpen(true); }}
+                    onBlur={(e) => (e.target.style.borderColor = "#e0d5c5")}
+                    placeholder="Search..."
+                    autoComplete="off"
+                    className="pl-8 pr-4 py-1.5 text-xs rounded-full outline-none transition-all w-full"
+                    style={{ border: "1px solid #e0d5c5", background: "#faf9f6", color: "#1a1a1a" }}
+                />
+            </form>
+
+            {open && suggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-[#e0d5c5] rounded-xl shadow-2xl z-50 overflow-hidden">
+                    {suggestions.map((product, i) => (
+                        <button
+                            key={product.id}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => { setQuery(product.name); setOpen(false); router.push(`/collections/${product.id}`); }}
+                            className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors cursor-pointer ${activeIndex === i ? "bg-[#faf9f6]" : "hover:bg-[#faf9f6]"}`}
+                        >
+                            <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 bg-[#f5f0e8]">
+                                <Image src={product.mainImage} alt={product.name} width={36} height={36} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm text-[#4a4a4a] truncate">{highlightMatch(product.name, query)}</p>
+                                <p className="text-xs text-[#9b9b9b] truncate">{product.category}</p>
+                            </div>
+                        </button>
+                    ))}
+                    <button
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={goToSearch}
+                        className="w-full flex items-center justify-center gap-1.5 py-2.5 border-t border-[#f0ebe2] text-xs font-semibold text-[#c9a84c] hover:bg-[#faf9f6] transition-colors cursor-pointer"
+                    >
+                        <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" strokeLinecap="round" />
+                        </svg>
+                        See all results for &ldquo;{query}&rdquo;
+                    </button>
+                </div>
+            )}
+        </div>
     );
 }
 

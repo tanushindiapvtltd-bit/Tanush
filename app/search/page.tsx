@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
@@ -19,10 +19,8 @@ interface Product {
 
 function SearchContent() {
     const searchParams = useSearchParams();
-    const router = useRouter();
     const initialQ = searchParams.get("q") ?? "";
 
-    const [query, setQuery] = useState(initialQ);
     const [results, setResults] = useState<Product[]>([]);
     const [loading, setLoading] = useState(false);
     const [searched, setSearched] = useState(false);
@@ -48,44 +46,16 @@ function SearchContent() {
         if (initialQ) doSearch(initialQ);
     }, [initialQ, doSearch]);
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        router.push(`/search?q=${encodeURIComponent(query)}`);
-        doSearch(query);
-    };
-
     return (
         <div className="min-h-screen flex flex-col" style={{ background: "#faf9f6" }}>
             <Navbar />
             <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-10 py-10">
                 <h1
-                    className="text-3xl md:text-4xl mb-6"
+                    className="text-3xl md:text-4xl mb-10"
                     style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontStyle: "italic", color: "#1a1a1a" }}
                 >
                     Search
                 </h1>
-
-                {/* Search bar */}
-                <form onSubmit={handleSubmit} className="flex gap-3 mb-10">
-                    <input
-                        type="text"
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search bangles, collections..."
-                        className="flex-1 rounded-lg px-5 py-3.5 text-sm outline-none"
-                        style={{ border: "1px solid #e0d5c5", background: "#fff" }}
-                        onFocus={(e) => (e.target.style.borderColor = "#c9a84c")}
-                        onBlur={(e) => (e.target.style.borderColor = "#e0d5c5")}
-                        autoFocus
-                    />
-                    <button
-                        type="submit"
-                        className="px-6 py-3.5 rounded-lg text-sm font-bold uppercase tracking-widest text-white transition-opacity hover:opacity-90 cursor-pointer"
-                        style={{ background: "#c9a84c" }}
-                    >
-                        Search
-                    </button>
-                </form>
 
                 {loading && (
                     <div className="flex justify-center py-16">
