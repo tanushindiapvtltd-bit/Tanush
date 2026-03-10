@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
-const IDENTIFIER = process.env.TCS_IDENTIFIER ?? "fkgm3";
-const SUP_NAME = process.env.TCS_SUP_NAME ?? "Tanush India P. Ltd";
+const SUP_NAME = process.env.TCS_SUP_NAME ?? "";
 const GSTIN = process.env.TCS_GSTIN ?? "";
-const SUPPLIER_ID = process.env.TCS_SUPPLIER_ID ?? "";
 const ENROLLMENT_NO = process.env.TCS_ENROLLMENT_NO ?? "";
 
 function formatDate(d: Date) {
@@ -122,13 +120,14 @@ export async function GET(req: NextRequest) {
                 const totalInvoice = Math.round((totalTaxable + taxAmount) * 100) / 100;
 
                 rows.push({
-                    identifier: IDENTIFIER,
                     sup_name: SUP_NAME,
                     gstin: GSTIN,
                     sub_order_num: `${order.orderNumber}_${i + 1}`,
                     order_date: formatDate(order.createdAt),
+                    product_name: item.productName,
                     hsn_code: item.product?.hsnCode ?? "",
                     quantity: item.quantity,
+                    unit_price: item.price,
                     gst_rate: gstRate.toFixed(2),
                     total_taxable_sale_value: Math.round(totalTaxable * 100) / 100,
                     tax_amount: taxAmount,
@@ -138,12 +137,11 @@ export async function GET(req: NextRequest) {
                     enrollment_no: ENROLLMENT_NO,
                     financial_year: year,
                     month_number: month,
-                    supplier_id: SUPPLIER_ID,
                 });
             }
         }
 
-        return buildExcel(rows, `tcs-sales-${year}-${String(month).padStart(2, "0")}.xlsx`);
+        return await buildExcel(rows, `tcs-sales-${year}-${String(month).padStart(2, "0")}.xlsx`);
     } else {
         // TCS Sales Return: return requests (approved) in this month
         const returns = await prisma.returnRequest.findMany({
@@ -182,13 +180,14 @@ export async function GET(req: NextRequest) {
                 const totalInvoice = Math.round((totalTaxable + taxAmount) * 100) / 100;
 
                 rows.push({
-                    identifier: IDENTIFIER,
                     sup_name: SUP_NAME,
                     gstin: GSTIN,
                     sub_order_num: `${order.orderNumber}_${i + 1}`,
                     order_date: formatDate(order.createdAt),
+                    product_name: item.productName,
                     hsn_code: item.product?.hsnCode ?? "",
                     quantity: item.quantity,
+                    unit_price: item.price,
                     gst_rate: gstRate.toFixed(2),
                     total_taxable_sale_value: Math.round(totalTaxable * 100) / 100,
                     tax_amount: taxAmount,
@@ -199,20 +198,24 @@ export async function GET(req: NextRequest) {
                     cancel_return_date: formatDate(ret.createdAt),
                     financial_year: year,
                     month_number: month,
-                    supplier_id: SUPPLIER_ID,
                 });
             }
         }
 
-        return buildExcel(rows, `tcs-sales-return-${year}-${String(month).padStart(2, "0")}.xlsx`);
+        return await buildExcel(rows, `tcs-sales-return-${year}-${String(month).padStart(2, "0")}.xlsx`);
     }
 }
 
-function buildExcel(rows: Record<string, unknown>[], filename: string) {
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-    const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+async function buildExcel(rows: Record<string, unknown>[], filename: string) {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Sheet1");
+
+    if (rows.length > 0) {
+        ws.columns = Object.keys(rows[0]).map((key) => ({ header: key, key }));
+        for (const row of rows) ws.addRow(row);
+    }
+
+    const buf = await wb.xlsx.writeBuffer();
 
     return new NextResponse(buf, {
         status: 200,

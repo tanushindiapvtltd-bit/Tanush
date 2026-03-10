@@ -35,6 +35,7 @@ export default function EditProductPage() {
     const [inStock, setInStock] = useState(true);
     const [hsnCode, setHsnCode] = useState("");
     const [gstRate, setGstRate] = useState("0");
+    const [sizes, setSizes] = useState("");
     const [specs, setSpecs] = useState<Spec[]>([]);
     const [colors, setColors] = useState<ColorVariant[]>([]);
 
@@ -59,6 +60,7 @@ export default function EditProductPage() {
                 setInStock(product.inStock !== false);
                 setHsnCode(product.hsnCode ?? "");
                 setGstRate(String(product.gstRate ?? 0));
+                setSizes(Array.isArray(product.sizes) ? product.sizes.join(", ") : "");
                 setSpecs(Array.isArray(product.specs) ? product.specs : []);
                 setColors(Array.isArray(product.colors) ? product.colors : []);
             })
@@ -95,6 +97,7 @@ export default function EditProductPage() {
                     mainImage, thumbs, description,
                     specs: specs.filter((s) => s.label && s.value),
                     colors,
+                    sizes: sizes.split(",").map((s) => s.trim()).filter(Boolean),
                     inStock,
                     hsnCode,
                     gstRate: parseFloat(gstRate) || 0,
@@ -155,6 +158,18 @@ export default function EditProductPage() {
                         <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>GST Rate (%)</label>
                         <input type="number" value={gstRate} onChange={(e) => setGstRate(e.target.value)} placeholder="0" min="0" max="100" step="0.01" className={inputCls} style={inputStyle} />
                     </div>
+                </div>
+
+                <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>Available Sizes (comma-separated)</label>
+                    <input value={sizes} onChange={(e) => setSizes(e.target.value)} placeholder="e.g. S, M, L, XL or 2.2, 2.4, 2.6, Free Size" className={inputCls} style={inputStyle} />
+                    {sizes.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                            {sizes.split(",").map((s) => s.trim()).filter(Boolean).map((s, i) => (
+                                <span key={i} className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(201,168,76,0.15)", color: "#e2c975" }}>{s}</span>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 <ImageUploader

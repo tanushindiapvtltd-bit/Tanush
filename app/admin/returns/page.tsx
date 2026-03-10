@@ -6,7 +6,7 @@ import Link from "next/link";
 interface ReturnItem {
     id: string;
     reason: string;
-    status: "PENDING" | "APPROVED" | "REJECTED";
+    status: "PENDING" | "APPROVED" | "REJECTED" | "COMPLETED";
     adminNote: string | null;
     returnWaybill: string | null;
     createdAt: string;
@@ -25,6 +25,7 @@ const STATUS_STYLE: Record<string, { bg: string; text: string; glow: string }> =
     PENDING: { bg: "rgba(212,134,14,0.12)", text: "#f0b641", glow: "0 0 8px rgba(212,134,14,0.15)" },
     APPROVED: { bg: "rgba(46,125,50,0.12)", text: "#81c784", glow: "0 0 8px rgba(46,125,50,0.15)" },
     REJECTED: { bg: "rgba(183,28,28,0.12)", text: "#ef5350", glow: "0 0 8px rgba(183,28,28,0.15)" },
+    COMPLETED: { bg: "rgba(21,101,192,0.12)", text: "#64b5f6", glow: "0 0 8px rgba(21,101,192,0.15)" },
 };
 
 export default function AdminReturnsPage() {
@@ -44,7 +45,7 @@ export default function AdminReturnsPage() {
         fetchReturns().finally(() => setLoading(false));
     }, []);
 
-    async function handleAction(id: string, action: "approve" | "reject") {
+    async function handleAction(id: string, action: "approve" | "reject" | "complete") {
         setProcessing(id + action);
         setError((prev) => ({ ...prev, [id]: "" }));
         try {
@@ -64,7 +65,8 @@ export default function AdminReturnsPage() {
     }
 
     const pending = returns.filter((r) => r.status === "PENDING");
-    const processed = returns.filter((r) => r.status !== "PENDING");
+    const approved = returns.filter((r) => r.status === "APPROVED");
+    const processed = returns.filter((r) => r.status === "REJECTED" || r.status === "COMPLETED");
 
     if (loading) return (
         <div className="flex justify-center py-20">
@@ -77,7 +79,7 @@ export default function AdminReturnsPage() {
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <h1 className="text-2xl font-bold" style={{ color: "#fff" }}>Returns</h1>
-                    <p className="text-sm mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>{pending.length} pending · {processed.length} processed</p>
+                    <p className="text-sm mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>{pending.length} pending · {approved.length} approved · {processed.length} processed</p>
                 </div>
             </div>
 
@@ -100,8 +102,32 @@ export default function AdminReturnsPage() {
                                 onNoteChange={(v) => setAdminNotes((prev) => ({ ...prev, [r.id]: v }))}
                                 onApprove={() => handleAction(r.id, "approve")}
                                 onReject={() => handleAction(r.id, "reject")}
+                                onComplete={() => { }}
                                 processing={processing}
                                 errorMsg={error[r.id] ?? ""}
+                            />
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Approved — awaiting pickup/return */}
+            {approved.length > 0 && (
+                <div className="mb-8">
+                    <h2 className="text-xs font-bold uppercase tracking-[0.15em] mb-4" style={{ color: "#81c784" }}>Approved — Awaiting Return ({approved.length})</h2>
+                    <div className="flex flex-col gap-4">
+                        {approved.map((r) => (
+                            <ReturnCard
+                                key={r.id}
+                                r={r}
+                                adminNote={adminNotes[r.id] ?? ""}
+                                onNoteChange={(v) => setAdminNotes((prev) => ({ ...prev, [r.id]: v }))}
+                                onApprove={() => { }}
+                                onReject={() => { }}
+                                onComplete={() => handleAction(r.id, "complete")}
+                                processing={processing}
+                                errorMsg={error[r.id] ?? ""}
+                                showComplete
                             />
                         ))}
                     </div>
@@ -121,6 +147,7 @@ export default function AdminReturnsPage() {
                                 onNoteChange={() => { }}
                                 onApprove={() => { }}
                                 onReject={() => { }}
+                                onComplete={() => { }}
                                 processing={null}
                                 errorMsg=""
                                 readonly
@@ -134,16 +161,18 @@ export default function AdminReturnsPage() {
 }
 
 function ReturnCard({
-    r, adminNote, onNoteChange, onApprove, onReject, processing, errorMsg, readonly,
+    r, adminNote, onNoteChange, onApprove, onReject, onComplete, processing, errorMsg, readonly, showComplete,
 }: {
     r: ReturnItem;
     adminNote: string;
     onNoteChange: (v: string) => void;
     onApprove: () => void;
     onReject: () => void;
+    onComplete?: () => void;
     processing: string | null;
     errorMsg: string;
     readonly?: boolean;
+    showComplete?: boolean;
 }) {
     const style = STATUS_STYLE[r.status] ?? { bg: "rgba(255,255,255,0.05)", text: "rgba(255,255,255,0.5)", glow: "none" };
 
@@ -218,7 +247,7 @@ function ReturnCard({
             )}
 
             {/* Actions */}
-            {!readonly && (
+            {(!readonly || showComplete) && (
                 <div className="pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
                     <div className="mb-3">
                         <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1" style={{ color: "rgba(255,255,255,0.25)" }}>
@@ -228,7 +257,7 @@ function ReturnCard({
                             type="text"
                             value={adminNote}
                             onChange={(e) => onNoteChange(e.target.value)}
-                            placeholder="e.g. Item must be unused, Approved — pickup in 2 days..."
+                            placeholder={showComplete ? "e.g. Refund of ₹499 initiated..." : "e.g. Item must be unused, Approved — pickup in 2 days..."}
                             className="w-full rounded-xl px-3 py-2 text-sm outline-none"
                             style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff" }}
                         />
@@ -237,22 +266,35 @@ function ReturnCard({
                         <p className="mb-3 text-xs font-semibold px-3 py-2 rounded-xl" style={{ background: "rgba(183,28,28,0.12)", color: "#ef5350", border: "1px solid rgba(183,28,28,0.2)" }}>{errorMsg}</p>
                     )}
                     <div className="flex gap-2">
-                        <button
-                            onClick={onApprove}
-                            disabled={!!processing}
-                            className="px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all cursor-pointer disabled:opacity-50"
-                            style={{ background: "linear-gradient(135deg, rgba(46,125,50,0.3), rgba(46,125,50,0.1))", color: "#81c784", border: "1px solid rgba(46,125,50,0.2)" }}
-                        >
-                            {processing === r.id + "approve" ? "Approving..." : "Approve & Create Return"}
-                        </button>
-                        <button
-                            onClick={onReject}
-                            disabled={!!processing}
-                            className="px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all cursor-pointer disabled:opacity-50"
-                            style={{ background: "rgba(183,28,28,0.12)", color: "#ef5350", border: "1px solid rgba(183,28,28,0.15)" }}
-                        >
-                            {processing === r.id + "reject" ? "Rejecting..." : "Reject"}
-                        </button>
+                        {showComplete ? (
+                            <button
+                                onClick={onComplete}
+                                disabled={!!processing}
+                                className="px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all cursor-pointer disabled:opacity-50"
+                                style={{ background: "linear-gradient(135deg, rgba(21,101,192,0.3), rgba(21,101,192,0.1))", color: "#64b5f6", border: "1px solid rgba(21,101,192,0.2)" }}
+                            >
+                                {processing === r.id + "complete" ? "Processing..." : "Mark Complete & Refund Issued"}
+                            </button>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={onApprove}
+                                    disabled={!!processing}
+                                    className="px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all cursor-pointer disabled:opacity-50"
+                                    style={{ background: "linear-gradient(135deg, rgba(46,125,50,0.3), rgba(46,125,50,0.1))", color: "#81c784", border: "1px solid rgba(46,125,50,0.2)" }}
+                                >
+                                    {processing === r.id + "approve" ? "Approving..." : "Approve & Create Return"}
+                                </button>
+                                <button
+                                    onClick={onReject}
+                                    disabled={!!processing}
+                                    className="px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all cursor-pointer disabled:opacity-50"
+                                    style={{ background: "rgba(183,28,28,0.12)", color: "#ef5350", border: "1px solid rgba(183,28,28,0.15)" }}
+                                >
+                                    {processing === r.id + "reject" ? "Rejecting..." : "Reject"}
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
             )}

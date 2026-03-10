@@ -47,38 +47,6 @@ export default function AdminOrdersPage() {
 
     const displayed = filter === "ALL" ? orders : orders.filter((o) => o.status === filter);
 
-    function downloadGSTReport() {
-        const rows = [
-            ["Order #", "Date", "Customer Name", "Customer Email", "Ship To", "City", "State", "PIN", "Items", "Payment Method", "Payment Status", "Order Status", "Subtotal (₹)", "Shipping (₹)", "GST 3% (₹)", "Total (₹)"],
-            ...displayed.map((o) => [
-                o.orderNumber,
-                new Date(o.createdAt).toLocaleDateString("en-IN"),
-                o.user.name,
-                o.user.email,
-                o.shippingName,
-                o.shippingCity,
-                o.shippingState,
-                o.shippingZip,
-                o.items.map((i) => `${i.productName} x${i.quantity}`).join(" | "),
-                o.paymentMethod,
-                o.paymentStatus,
-                o.status,
-                o.subtotal,
-                o.shippingCost,
-                o.tax,
-                o.total,
-            ]),
-        ];
-        const csv = rows.map((r) => r.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
-        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `tanush-gst-report-${new Date().toISOString().split("T")[0]}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-    }
-
     return (
         <div>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
@@ -86,20 +54,6 @@ export default function AdminOrdersPage() {
                     <h1 className="text-2xl font-bold" style={{ color: "#fff" }}>Orders</h1>
                     <p className="text-sm mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>{orders.length} total orders</p>
                 </div>
-                <button
-                    onClick={downloadGSTReport}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all cursor-pointer"
-                    style={{
-                        background: "linear-gradient(135deg, rgba(46,125,50,0.2), rgba(46,125,50,0.08))",
-                        color: "#81c784",
-                        border: "1px solid rgba(46,125,50,0.2)",
-                    }}
-                >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                    Download GST Report
-                </button>
             </div>
 
             {/* Filters */}

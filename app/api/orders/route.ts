@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 
 function generateOrderNumber(): string {
     const timestamp = Date.now().toString(36).toUpperCase();
@@ -88,9 +89,20 @@ export async function POST(req: NextRequest) {
         const priceMap = new Map(dbProducts.map((p) => [p.id, p.priceNum]));
         const subtotal = items.reduce((sum: number, item: { productId: number; quantity: number }) =>
             sum + (priceMap.get(Number(item.productId)) ?? 0) * Number(item.quantity), 0);
-        const resolvedShipping = shippingMethod === "express" ? 2500 : 0;
+        let resolvedShipping: number;
+        if (shippingMethod === "express") {
+            resolvedShipping = 2500;
+        } else if (subtotal > 499) {
+            resolvedShipping = paymentMethod === "COD" ? 50 : 0;
+        } else {
+            resolvedShipping = paymentMethod === "COD" ? 150 : 100;
+        }
         const tax = Math.round(subtotal * 0.03);
         const total = subtotal + resolvedShipping + tax;
+
+        // Estimated delivery: 7 business days from now
+        const estimatedDelivery = new Date();
+        estimatedDelivery.setDate(estimatedDelivery.getDate() + 7);
 
         const order = await prisma.order.create({
             data: {
@@ -132,6 +144,7 @@ export async function POST(req: NextRequest) {
                 deliveryTracking: {
                     create: {
                         currentStatus: "Order Placed",
+                        estimatedDelivery,
                         history: [
                             {
                                 status: "Order Placed",
@@ -148,6 +161,23 @@ export async function POST(req: NextRequest) {
                 deliveryTracking: true,
             },
         });
+
+        // Send order confirmation email (non-blocking)
+        const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { name: true, email: true } });
+        if (user) {
+            sendOrderConfirmationEmail(
+                user.email,
+                user.name,
+                order.orderNumber,
+                order.items.map((i) => ({ productName: i.productName, quantity: i.quantity, price: i.price })),
+                order.subtotal,
+                order.shippingCost,
+                order.tax,
+                order.total,
+                order.paymentMethod,
+                estimatedDelivery,
+            ).catch(console.error);
+        }
 
         return NextResponse.json(order, { status: 201 });
     } catch (error) {

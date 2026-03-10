@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { sendOrderStatusEmail } from "@/lib/email";
 
 export async function GET(
     _req: NextRequest,
@@ -58,8 +59,22 @@ export async function PATCH(
     const order = await prisma.order.update({
         where: { id },
         data,
-        include: { deliveryTracking: true },
+        include: {
+            deliveryTracking: true,
+            user: { select: { name: true, email: true } },
+        },
     });
+
+    // Send status update email when order status changes
+    if (status && order.user) {
+        sendOrderStatusEmail(
+            order.user.email,
+            order.user.name,
+            order.orderNumber,
+            status,
+            order.deliveryTracking?.trackingNumber ?? null,
+        ).catch(console.error);
+    }
 
     return NextResponse.json(order);
 }

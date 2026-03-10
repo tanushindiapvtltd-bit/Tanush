@@ -37,6 +37,7 @@ enum ReturnStatus {
   PENDING
   APPROVED
   REJECTED
+  COMPLETED
 }
 
 model User {
@@ -83,6 +84,7 @@ model Product {
   colors      Json     @default("[]")
   hsnCode     String   @default("") @map("hsn_code")
   gstRate     Float    @default(0) @map("gst_rate")
+  sizes       Json     @default("[]")
   inStock     Boolean  @default(true) @map("in_stock")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")

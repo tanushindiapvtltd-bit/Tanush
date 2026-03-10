@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { createReverseShipment } from "@/lib/delhivery";
-import { sendReturnApprovedEmail, sendReturnRejectedEmail } from "@/lib/email";
+import { sendReturnApprovedEmail, sendReturnRejectedEmail, sendReturnCompletedEmail } from "@/lib/email";
 
 export async function PATCH(
     req: NextRequest,
@@ -16,8 +16,8 @@ export async function PATCH(
     const { id } = await params;
     const { action, adminNote } = await req.json(); // action: "approve" | "reject"
 
-    if (!["approve", "reject"].includes(action)) {
-        return NextResponse.json({ error: "action must be approve or reject" }, { status: 400 });
+    if (!["approve", "reject", "complete"].includes(action)) {
+        return NextResponse.json({ error: "action must be approve, reject, or complete" }, { status: 400 });
     }
 
     const returnRequest = await prisma.returnRequest.findUnique({
@@ -34,11 +34,24 @@ export async function PATCH(
     });
 
     if (!returnRequest) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    const { order, user } = returnRequest;
+
+    if (action === "complete") {
+        if (returnRequest.status !== "APPROVED") {
+            return NextResponse.json({ error: "Only approved returns can be marked complete" }, { status: 400 });
+        }
+        await prisma.returnRequest.update({
+            where: { id },
+            data: { status: "COMPLETED", adminNote: adminNote || returnRequest.adminNote },
+        });
+        await sendReturnCompletedEmail(user.email, user.name, order.orderNumber, adminNote ?? "").catch(console.error);
+        return NextResponse.json({ success: true, status: "COMPLETED" });
+    }
+
     if (returnRequest.status !== "PENDING") {
         return NextResponse.json({ error: "Already processed" }, { status: 400 });
     }
-
-    const { order, user } = returnRequest;
 
     if (action === "reject") {
         await prisma.returnRequest.update({

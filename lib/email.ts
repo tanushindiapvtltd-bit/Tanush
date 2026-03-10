@@ -1,7 +1,16 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = process.env.EMAIL_FROM ?? "Tanush <onboarding@resend.dev>";
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: parseInt(process.env.SMTP_PORT ?? "587"),
+  secure: process.env.SMTP_SECURE === "true",
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+const FROM = process.env.EMAIL_FROM ?? "Tanush <noreply@tanush.in>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 // ── Shared layout ─────────────────────────────────────────────────────────────
@@ -55,7 +64,11 @@ function goldButton(href: string, label: string) {
   </table>`;
 }
 
-// ── 1. Welcome email (sent after successful sign-up) ─────────────────────────
+async function sendMail(to: string, subject: string, html: string) {
+  return transporter.sendMail({ from: FROM, to, subject, html });
+}
+
+// ── 1. Welcome email ──────────────────────────────────────────────────────────
 
 export async function sendWelcomeEmail(to: string, name: string) {
   const firstName = name.split(" ")[0];
@@ -70,11 +83,10 @@ export async function sendWelcomeEmail(to: string, name: string) {
     </p>
     ${goldButton(`${APP_URL}/collections`, "Explore Collections")}
   `);
-
-  return resend.emails.send({ from: FROM, to: [to], subject: "Welcome to Tanush Jewelry", html });
+  return sendMail(to, "Welcome to Tanush Jewelry", html);
 }
 
-// ── 2. Login notification (sent on every successful sign-in) ─────────────────
+// ── 2. Login notification ─────────────────────────────────────────────────────
 
 export async function sendLoginNotificationEmail(to: string, name: string) {
   const firstName = name?.split(" ")[0] ?? "there";
@@ -101,11 +113,10 @@ export async function sendLoginNotificationEmail(to: string, name: string) {
       If this was you, no action is needed. If you did not sign in, please reset your password immediately.
     </p>
   `);
-
-  return resend.emails.send({ from: FROM, to: [to], subject: "New sign-in to your Tanush account", html });
+  return sendMail(to, "New sign-in to your Tanush account", html);
 }
 
-// ── 3. Password reset email ───────────────────────────────────────────────────
+// ── 3. Password reset ─────────────────────────────────────────────────────────
 
 export async function sendPasswordResetEmail(to: string, name: string, token: string) {
   const firstName = name?.split(" ")[0] ?? "there";
@@ -126,11 +137,160 @@ export async function sendPasswordResetEmail(to: string, name: string, token: st
       Or copy this link: ${resetUrl}
     </p>
   `);
-
-  return resend.emails.send({ from: FROM, to: [to], subject: "Reset your Tanush password", html });
+  return sendMail(to, "Reset your Tanush password", html);
 }
 
-// ── 4. Return request approved ────────────────────────────────────────────────
+// ── 4. Order confirmation ─────────────────────────────────────────────────────
+
+export async function sendOrderConfirmationEmail(
+  to: string,
+  name: string,
+  orderNumber: string,
+  items: { productName: string; quantity: number; price: number }[],
+  subtotal: number,
+  shippingCost: number,
+  tax: number,
+  total: number,
+  paymentMethod: string,
+  estimatedDelivery: Date,
+) {
+  const firstName = name?.split(" ")[0] ?? "there";
+  const itemRows = items.map((i) =>
+    `<tr>
+      <td style="padding:8px 0;font-family:Arial,sans-serif;font-size:13px;color:#4a4a4a;border-bottom:1px solid #f0e6d0;">${i.productName} × ${i.quantity}</td>
+      <td style="padding:8px 0;font-family:Arial,sans-serif;font-size:13px;color:#1a1a1a;font-weight:600;text-align:right;border-bottom:1px solid #f0e6d0;">₹${(i.price * i.quantity).toLocaleString("en-IN")}</td>
+    </tr>`
+  ).join("");
+
+  const html = emailWrapper(`
+    <p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#c9a84c;">Order Confirmed</p>
+    <h1 style="margin:0 0 20px;font-family:'Georgia',serif;font-size:28px;font-style:italic;color:#1a1a1a;font-weight:400;">Thank you, ${firstName}!</h1>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#4a4a4a;font-family:Arial,sans-serif;">
+      Your order <strong>${orderNumber}</strong> has been placed successfully. We'll notify you as it progresses.
+    </p>
+    <table cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 20px;border-top:1px solid #f0e6d0;">
+      ${itemRows}
+      <tr>
+        <td style="padding:8px 0;font-family:Arial,sans-serif;font-size:12px;color:#999;">Shipping</td>
+        <td style="padding:8px 0;font-family:Arial,sans-serif;font-size:12px;color:#4a4a4a;text-align:right;">${shippingCost === 0 ? "Free" : `₹${shippingCost.toLocaleString("en-IN")}`}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;font-family:Arial,sans-serif;font-size:12px;color:#999;">Tax (3%)</td>
+        <td style="padding:8px 0;font-family:Arial,sans-serif;font-size:12px;color:#4a4a4a;text-align:right;">₹${tax.toLocaleString("en-IN")}</td>
+      </tr>
+      <tr>
+        <td style="padding:12px 0 0;font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#1a1a1a;border-top:2px solid #e8e3db;">Total</td>
+        <td style="padding:12px 0 0;font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#c9a84c;text-align:right;border-top:2px solid #e8e3db;">₹${total.toLocaleString("en-IN")}</td>
+      </tr>
+    </table>
+    <table cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 20px;">
+      <tr>
+        <td style="padding:14px 18px;background:#faf9f6;border-left:3px solid #c9a84c;border-radius:2px;">
+          <p style="margin:0 0 3px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#999;">Payment</p>
+          <p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:13px;color:#1a1a1a;">${paymentMethod === "COD" ? "Cash on Delivery" : "Paid Online"}</p>
+          <p style="margin:0 0 3px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#999;">Expected Delivery</p>
+          <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;font-weight:600;color:#1a1a1a;">${estimatedDelivery.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
+        </td>
+      </tr>
+    </table>
+    ${goldButton(`${APP_URL}/orders`, "Track My Order")}
+  `);
+  return sendMail(to, `Order confirmed — ${orderNumber}`, html);
+}
+
+// ── 5. Order status update ────────────────────────────────────────────────────
+
+const STATUS_MESSAGES: Record<string, { subject: string; heading: string; body: string; color: string }> = {
+  CONFIRMED: {
+    subject: "Order confirmed",
+    heading: "Your order is confirmed!",
+    body: "Great news — your order has been confirmed and is being prepared.",
+    color: "#2e7d32",
+  },
+  PROCESSING: {
+    subject: "Order is being processed",
+    heading: "We're packing your order",
+    body: "Your order is currently being processed and packed with care. We'll update you once it's shipped.",
+    color: "#1565c0",
+  },
+  SHIPPED: {
+    subject: "Your order is on the way",
+    heading: "Your order has shipped!",
+    body: "Your order is on its way to you. Use the tracking details on your order page to follow its journey.",
+    color: "#6a1b9a",
+  },
+  DELIVERED: {
+    subject: "Order delivered",
+    heading: "Your order has arrived!",
+    body: "Your order has been delivered. We hope you love your new jewellery. If you have any issues, you can request a return within 3 days.",
+    color: "#1b5e20",
+  },
+  CANCELLED: {
+    subject: "Order cancelled",
+    heading: "Your order has been cancelled",
+    body: "Your order has been cancelled. If you did not request this cancellation or have any questions, please contact our support team.",
+    color: "#b71c1c",
+  },
+};
+
+export async function sendOrderStatusEmail(
+  to: string,
+  name: string,
+  orderNumber: string,
+  status: string,
+  trackingNumber?: string | null,
+) {
+  const firstName = name?.split(" ")[0] ?? "there";
+  const info = STATUS_MESSAGES[status];
+  if (!info) return;
+
+  const html = emailWrapper(`
+    <p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:${info.color};">${status.charAt(0) + status.slice(1).toLowerCase()}</p>
+    <h1 style="margin:0 0 20px;font-family:'Georgia',serif;font-size:28px;font-style:italic;color:#1a1a1a;font-weight:400;">${info.heading}</h1>
+    <p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:14px;color:#888;">Order: <strong style="color:#1a1a1a;">${orderNumber}</strong></p>
+    <p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:#4a4a4a;font-family:Arial,sans-serif;">${info.body}</p>
+    ${trackingNumber ? `
+    <table cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 20px;">
+      <tr>
+        <td style="padding:14px 18px;background:#faf9f6;border-left:3px solid #c9a84c;border-radius:2px;">
+          <p style="margin:0 0 3px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#999;">Tracking Number</p>
+          <p style="margin:0;font-family:Arial,sans-serif;font-size:15px;font-weight:700;color:#1a1a1a;">${trackingNumber}</p>
+        </td>
+      </tr>
+    </table>` : ""}
+    ${goldButton(`${APP_URL}/orders`, "View Order")}
+  `);
+  return sendMail(to, `${info.subject} — ${orderNumber}`, html);
+}
+
+// ── 6. Return completed (refund issued) ───────────────────────────────────────
+
+export async function sendReturnCompletedEmail(to: string, name: string, orderNumber: string, adminNote: string) {
+  const firstName = name?.split(" ")[0] ?? "there";
+  const html = emailWrapper(`
+    <p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#2e7d32;">Return Complete</p>
+    <h1 style="margin:0 0 20px;font-family:'Georgia',serif;font-size:28px;font-style:italic;color:#1a1a1a;font-weight:400;">Return Processed</h1>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#4a4a4a;font-family:Arial,sans-serif;">
+      Hello ${firstName}, we have received and inspected the returned item(s) for order <strong>${orderNumber}</strong>. Your refund has been initiated.
+    </p>
+    ${adminNote ? `
+    <table cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 20px;">
+      <tr>
+        <td style="padding:14px 18px;background:#e8f5e9;border-left:3px solid #2e7d32;border-radius:2px;">
+          <p style="margin:0 0 3px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#999;">Note</p>
+          <p style="margin:0;font-family:Arial,sans-serif;font-size:14px;color:#4a4a4a;">${adminNote}</p>
+        </td>
+      </tr>
+    </table>` : ""}
+    <p style="margin:0 0 16px;font-size:14px;line-height:1.7;color:#4a4a4a;font-family:Arial,sans-serif;">
+      Refunds typically reflect within 5–7 business days depending on your bank or payment provider.
+    </p>
+    ${goldButton(`${APP_URL}/orders`, "View My Orders")}
+  `);
+  return sendMail(to, `Refund initiated — Order ${orderNumber}`, html);
+}
+
+// ── 8. Return approved ────────────────────────────────────────────────────────
 
 export async function sendReturnApprovedEmail(to: string, name: string, orderNumber: string, returnWaybill: string) {
   const firstName = name?.split(" ")[0] ?? "there";
@@ -153,10 +313,10 @@ export async function sendReturnApprovedEmail(to: string, name: string, orderNum
     </p>
     ${goldButton(`${APP_URL}/orders`, "View My Orders")}
   `);
-  return resend.emails.send({ from: FROM, to: [to], subject: `Return approved — Order ${orderNumber}`, html });
+  return sendMail(to, `Return approved — Order ${orderNumber}`, html);
 }
 
-// ── 5. Return request rejected ────────────────────────────────────────────────
+// ── 9. Return rejected ────────────────────────────────────────────────────────
 
 export async function sendReturnRejectedEmail(to: string, name: string, orderNumber: string, adminNote: string) {
   const firstName = name?.split(" ")[0] ?? "there";
@@ -180,5 +340,5 @@ export async function sendReturnRejectedEmail(to: string, name: string, orderNum
     </p>
     ${goldButton(`${APP_URL}/orders`, "View My Orders")}
   `);
-  return resend.emails.send({ from: FROM, to: [to], subject: `Return request update — Order ${orderNumber}`, html });
+  return sendMail(to, `Return request update — Order ${orderNumber}`, html);
 }

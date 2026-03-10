@@ -383,6 +383,18 @@ export default function OrderDetailPage() {
                                     Delivery Tracking
                                 </h2>
 
+                                {tracking?.estimatedDelivery && (
+                                    <div className="mb-4 p-3 rounded-lg flex items-center gap-3" style={{ background: "#f0faf3", border: "1px solid #a5d6a7" }}>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" strokeWidth={2}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01" strokeLinecap="round"/></svg>
+                                        <div>
+                                            <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: "#388e3c" }}>Expected Delivery</p>
+                                            <p className="text-sm font-bold" style={{ color: "#1b5e20" }}>
+                                                {new Date(tracking.estimatedDelivery).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {tracking?.trackingNumber && (
                                     <div className="mb-5 p-3 rounded-lg" style={{ background: "#faf9f6", border: "1px solid #e0d5c5" }}>
                                         <p className="text-xs uppercase tracking-wider mb-1" style={{ color: "#999" }}>Tracking Number</p>
@@ -403,11 +415,6 @@ export default function OrderDetailPage() {
                                                 </a>
                                             )}
                                         </div>
-                                        {tracking.estimatedDelivery && (
-                                            <p className="text-xs mt-1" style={{ color: "#888" }}>
-                                                Est. delivery: {new Date(tracking.estimatedDelivery).toLocaleDateString("en-IN", { day: "numeric", month: "long" })}
-                                            </p>
-                                        )}
                                     </div>
                                 )}
 
@@ -492,6 +499,7 @@ export default function OrderDetailPage() {
                                 PENDING: { bg: "#fff8e6", text: "#d4860e" },
                                 APPROVED: { bg: "#e8f5e9", text: "#2e7d32" },
                                 REJECTED: { bg: "#fce4ec", text: "#b71c1c" },
+                                COMPLETED: { bg: "#e3f2fd", text: "#1565c0" },
                             };
                             if (existingReturn) {
                                 const s = returnStatusStyle[existingReturn.status] ?? { bg: "#f5f5f5", text: "#555" };

@@ -86,7 +86,9 @@ export default function CheckoutPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hydrated, items.length]);
 
-    const shipping = paymentMethod === "COD" ? 150 : 100;
+    const shipping = subtotal > 499
+        ? (paymentMethod === "COD" ? 50 : 0)
+        : (paymentMethod === "COD" ? 150 : 100);
     const tax = Math.round(subtotal * 0.03);
     const total = subtotal + shipping + tax;
 
@@ -398,7 +400,7 @@ export default function CheckoutPage() {
                                         </div>
                                         <div>
                                             <p className="text-[12px] font-semibold mb-1" style={{ color: "#1a1a1a" }}>Pay on Delivery</p>
-                                            <p className="text-[11px] leading-relaxed" style={{ color: "#888" }}>Pay with cash when your order arrives. COD shipping is ₹150.</p>
+                                            <p className="text-[11px] leading-relaxed" style={{ color: "#888" }}>Pay with cash when your order arrives. COD shipping: ₹50 on orders above ₹499, ₹150 otherwise.</p>
                                         </div>
                                     </div>
                                 )}
@@ -559,33 +561,6 @@ function InputField({ label, value, onChange, placeholder, type = "text", requir
     );
 }
 
-function ShippingOption({ selected, onSelect, title, price, priceGold = false }:
-    { selected: boolean; onSelect: () => void; title: string; price: string; priceGold?: boolean }) {
-    return (
-        <button type="button" onClick={onSelect}
-            className="w-full flex items-center justify-between px-4 py-4 rounded-lg text-left transition-all cursor-pointer"
-            style={{ border: selected ? "2px solid #c9a84c" : "1px solid #e0d5c5", background: selected ? "#fffbf2" : "#fff" }}>
-            <div className="flex items-center gap-3">
-                <div className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center" style={{ border: `2px solid ${selected ? "#c9a84c" : "#ccc"}` }}>
-                    {selected && <div className="w-2 h-2 rounded-full" style={{ background: "#c9a84c" }} />}
-                </div>
-                <span className="text-sm" style={{ color: "#1a1a1a" }}>{title}</span>
-            </div>
-            <span className="text-sm font-bold" style={{ color: priceGold ? "#c9a84c" : "#1a1a1a" }}>{price}</span>
-        </button>
-    );
-}
-
-function PaymentTabBtn({ active, onClick, icon, label }:
-    { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
-    return (
-        <button type="button" onClick={onClick}
-            className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-semibold transition-all cursor-pointer"
-            style={{ border: active ? "2px solid #c9a84c" : "1px solid #e0d5c5", background: active ? "#fffbf2" : "#fff", color: active ? "#c9a84c" : "#555" }}>
-            {icon}{label}
-        </button>
-    );
-}
 
 function SummaryRow({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
     return (

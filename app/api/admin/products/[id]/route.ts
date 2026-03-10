@@ -33,7 +33,7 @@ export async function PATCH(
     if (isNaN(patchId)) return NextResponse.json({ error: "Invalid product ID" }, { status: 400 });
     const body = await req.json();
 
-    const { name, price, priceNum, category, categoryKey, mainImage, thumbs, description, specs, colors, inStock, hsnCode, gstRate } = body;
+    const { name, price, priceNum, category, categoryKey, mainImage, thumbs, description, specs, colors, sizes, inStock, hsnCode, gstRate } = body;
 
     const product = await prisma.product.update({
         where: { id: patchId },
@@ -48,6 +48,7 @@ export async function PATCH(
             ...(description !== undefined && description !== "" && { description }),
             ...(specs !== undefined && { specs }),
             ...(colors !== undefined && { colors }),
+            ...(sizes !== undefined && { sizes }),
             ...(inStock !== undefined && { inStock: Boolean(inStock) }),
             ...(hsnCode !== undefined && { hsnCode }),
             ...(gstRate !== undefined && { gstRate: parseFloat(gstRate) }),
