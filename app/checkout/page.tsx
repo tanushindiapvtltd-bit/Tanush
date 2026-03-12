@@ -118,7 +118,7 @@ export default function CheckoutPage() {
     });
 
     const validateForm = () => {
-        if (!firstName || !lastName || !email || !address || !city || !state || !zip) {
+        if (!firstName || !lastName || !email || !address || !city || !state || !zip || !phone) {
             showToast({ type: "error", message: "Please fill in all required fields." });
             return false;
         }
@@ -134,7 +134,7 @@ export default function CheckoutPage() {
             showToast({ type: "error", message: "PIN code must be exactly 6 digits." });
             return false;
         }
-        if (phone && !/^[6-9]\d{9}$/.test(phone.replace(/\s/g, ""))) {
+        if (!/^[6-9]\d{9}$/.test(phone.replace(/\s/g, ""))) {
             showToast({ type: "error", message: "Please enter a valid 10-digit Indian mobile number." });
             return false;
         }
@@ -320,7 +320,7 @@ export default function CheckoutPage() {
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <InputField label="PIN code" value={zip} onChange={setZip} placeholder="PIN code" required />
-                                        <InputField label="Phone (optional)" type="tel" value={phone} onChange={setPhone} placeholder="Phone number" />
+                                        <InputField label="Phone" type="tel" value={phone} onChange={setPhone} placeholder="Phone number" required />
                                     </div>
                                 </div>
                             </section>

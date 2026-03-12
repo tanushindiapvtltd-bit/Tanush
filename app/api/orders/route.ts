@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
                 total,
                 shippingName,
                 shippingEmail,
-                shippingPhone: shippingPhone || null,
+                shippingPhone: shippingPhone,
                 shippingAddress,
                 shippingApartment: shippingApartment || null,
                 shippingCity,
