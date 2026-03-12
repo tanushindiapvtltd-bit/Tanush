@@ -154,7 +154,7 @@ export default function AdminOrderDetailPage() {
                     ← Orders
                 </Link>
                 <button
-                    onClick={() => window.open(`/admin/orders/${id}/print`, "_blank")}
+                    onClick={() => window.open(`/admin-print/${id}`, "_blank")}
                     className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all cursor-pointer"
                     style={{ background: "rgba(201,168,76,0.12)", color: "#e2c975", border: "1px solid rgba(201,168,76,0.15)" }}
                 >
