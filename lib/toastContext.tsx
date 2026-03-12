@@ -87,8 +87,8 @@ function ToastUI({ data, visible }: { data: ToastData; visible: boolean }) {
                     background: "linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%)",
                     border: "1px solid rgba(201,168,76,0.25)",
                     minWidth: "230px",
-                    maxWidth: "320px",
-                    whiteSpace: "nowrap",
+                    maxWidth: data.type === "error" ? "360px" : "320px",
+                    whiteSpace: data.type === "error" ? "normal" : "nowrap",
                 }}
             >
                 {/* Icon */}
@@ -101,7 +101,7 @@ function ToastUI({ data, visible }: { data: ToastData; visible: boolean }) {
 
                 {/* Text */}
                 <div className="flex flex-col min-w-0">
-                    <span className="text-white text-[13px] font-semibold leading-snug truncate">{data.message}</span>
+                    <span className={`text-white text-[13px] font-semibold leading-snug ${data.type === "error" ? "whitespace-normal" : "truncate"}`}>{data.message}</span>
                     {data.subMessage && (
                         <span className="text-[11px] leading-snug truncate" style={{ color: "#C9A84C" }}>
                             {data.subMessage}
@@ -109,11 +109,17 @@ function ToastUI({ data, visible }: { data: ToastData; visible: boolean }) {
                     )}
                 </div>
 
-                {/* Check tick */}
+                {/* Tick for success types, X for errors */}
                 <div className="ml-auto flex-shrink-0 pl-1">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2.5" strokeLinecap="round">
-                        <polyline points="20 6 9 17 4 12" />
-                    </svg>
+                    {data.type === "error" ? (
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" strokeWidth="2.5" strokeLinecap="round">
+                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    ) : (
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2.5" strokeLinecap="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                    )}
                 </div>
             </div>
         </div>

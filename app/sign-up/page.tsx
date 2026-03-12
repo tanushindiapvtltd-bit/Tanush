@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { useToast } from "@/lib/toastContext";
 
 export default function SignUpPage() {
     const router = useRouter();
@@ -14,22 +15,21 @@ export default function SignUpPage() {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [newsletter, setNewsletter] = useState(false);
-    const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const { showToast } = useToast();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setError("");
 
         if (password !== confirmPassword) {
-            setError("Passwords do not match.");
+            showToast({ type: "error", message: "Passwords do not match." });
             setLoading(false);
             return;
         }
 
         if (password.length < 8) {
-            setError("Password must be at least 8 characters.");
+            showToast({ type: "error", message: "Password must be at least 8 characters." });
             setLoading(false);
             return;
         }
@@ -44,12 +44,12 @@ export default function SignUpPage() {
             const data = await res.json();
 
             if (!res.ok) {
-                setError(data.error || "Failed to create account.");
+                showToast({ type: "error", message: data.error || "Failed to create account." });
             } else {
                 router.push("/sign-in?registered=true");
             }
         } catch {
-            setError("Something went wrong. Please try again.");
+            showToast({ type: "error", message: "Something went wrong. Please try again." });
         } finally {
             setLoading(false);
         }
@@ -106,13 +106,6 @@ export default function SignUpPage() {
                         <h1 className="font-cormorant text-4xl text-[#1a1a1a] mb-3">Create Your Account</h1>
                         <p className="text-[#6b6b6b] text-sm font-light">Join our exclusive world of timeless elegance.</p>
                     </div>
-
-                    {/* Error message */}
-                    {error && (
-                        <div className="mb-6 px-4 py-3 bg-red-50 border border-red-200 rounded text-sm text-red-600">
-                            {error}
-                        </div>
-                    )}
 
                     {/* Google sign-up */}
                     <button

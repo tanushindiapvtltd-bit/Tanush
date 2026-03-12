@@ -1,10 +1,11 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { useToast } from "@/lib/toastContext";
 
 // ── Inner form — uses useSearchParams, must be inside <Suspense> ─────────────
 function SignInForm() {
@@ -28,13 +29,19 @@ function SignInForm() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
-    const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const { showToast } = useToast();
+
+    useEffect(() => {
+        if (urlErrorMessage) {
+            showToast({ type: "error", message: urlErrorMessage });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setError("");
 
         try {
             const result = await signIn("credentials", {
@@ -44,13 +51,13 @@ function SignInForm() {
             });
 
             if (result?.error) {
-                setError("Invalid email or password. Please try again.");
+                showToast({ type: "error", message: "Invalid email or password. Please try again." });
             } else {
                 router.push(callbackUrl);
                 router.refresh();
             }
         } catch {
-            setError("Something went wrong. Please try again.");
+            showToast({ type: "error", message: "Something went wrong. Please try again." });
         } finally {
             setLoading(false);
         }
@@ -80,13 +87,6 @@ function SignInForm() {
             {registered && (
                 <div className="mb-6 px-4 py-3 bg-green-50 border border-green-200 rounded text-sm text-green-700 text-center">
                     Account created! Please sign in.
-                </div>
-            )}
-
-            {/* Error message — from form state or from NextAuth ?error= redirect */}
-            {(error || urlErrorMessage) && (
-                <div className="mb-6 px-4 py-3 bg-red-50 border border-red-200 rounded text-sm text-red-600 text-center">
-                    {error || urlErrorMessage}
                 </div>
             )}
 

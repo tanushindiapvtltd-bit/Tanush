@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { useCart } from "@/lib/cartContext";
+import { useToast } from "@/lib/toastContext";
 
 type PaymentMethod = "COD" | "RAZORPAY";
 
@@ -62,8 +63,8 @@ export default function CheckoutPage() {
     const [discountCode, setDiscountCode] = useState("");
     const [discountApplied, setDiscountApplied] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
     const [paymentCancelled, setPaymentCancelled] = useState(false);
+    const { showToast } = useToast();
 
     // Pre-fill form fields when session loads (handles async auth)
     useEffect(() => {
@@ -118,23 +119,23 @@ export default function CheckoutPage() {
 
     const validateForm = () => {
         if (!firstName || !lastName || !email || !address || !city || !state || !zip) {
-            setError("Please fill in all required fields.");
+            showToast({ type: "error", message: "Please fill in all required fields." });
             return false;
         }
         if (items.length === 0) {
-            setError("Your cart is empty.");
+            showToast({ type: "error", message: "Your cart is empty." });
             return false;
         }
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            setError("Please enter a valid email address.");
+            showToast({ type: "error", message: "Please enter a valid email address." });
             return false;
         }
         if (!/^\d{6}$/.test(zip)) {
-            setError("PIN code must be exactly 6 digits.");
+            showToast({ type: "error", message: "PIN code must be exactly 6 digits." });
             return false;
         }
         if (phone && !/^[6-9]\d{9}$/.test(phone.replace(/\s/g, ""))) {
-            setError("Please enter a valid 10-digit Indian mobile number.");
+            showToast({ type: "error", message: "Please enter a valid 10-digit Indian mobile number." });
             return false;
         }
         return true;
@@ -143,7 +144,6 @@ export default function CheckoutPage() {
     const handleCOD = async () => {
         if (!validateForm()) return;
         setLoading(true);
-        setError("");
         try {
             const res = await fetch("/api/orders", {
                 method: "POST",
@@ -151,7 +151,7 @@ export default function CheckoutPage() {
                 body: JSON.stringify({ ...getFormData(), paymentMethod: "COD" }),
             });
             const data = await res.json();
-            if (!res.ok) { setError(data.error ?? "Failed to place order"); return; }
+            if (!res.ok) { showToast({ type: "error", message: data.error ?? "Failed to place order" }); return; }
             clearCart();
             router.push(`/orders/${data.id}`);
         } finally {
@@ -162,11 +162,10 @@ export default function CheckoutPage() {
     const handleRazorpay = async () => {
         if (!validateForm()) return;
         setLoading(true);
-        setError("");
         setPaymentCancelled(false);
 
         if (!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID) {
-            setError("Payment gateway is not configured. Please contact support.");
+            showToast({ type: "error", message: "Payment gateway is not configured. Please contact support." });
             setLoading(false);
             return;
         }
@@ -179,7 +178,7 @@ export default function CheckoutPage() {
         try {
             // Load Razorpay SDK
             const loaded = await loadRazorpayScript();
-            if (!loaded || !window.Razorpay) { setError("Failed to load payment gateway. Please disable any ad blockers and try again."); return; }
+            if (!loaded || !window.Razorpay) { showToast({ type: "error", message: "Failed to load payment gateway. Please disable any ad blockers and try again." }); return; }
 
             // Create Razorpay order on server — send items so server recalculates total
             const rpRes = await fetch("/api/payment/razorpay/create-order", {
@@ -191,7 +190,7 @@ export default function CheckoutPage() {
                 }),
             });
             const rpData = await rpRes.json();
-            if (!rpRes.ok) { setError(rpData.error ?? "Payment gateway error"); return; }
+            if (!rpRes.ok) { showToast({ type: "error", message: rpData.error ?? "Payment gateway error" }); return; }
 
             // Open Razorpay modal — DB order is only created AFTER payment succeeds
             const options: RazorpayOptions = {
@@ -219,7 +218,7 @@ export default function CheckoutPage() {
                         });
                         const completeData = await completeRes.json();
                         if (!completeRes.ok) {
-                            setError(completeData.error ?? `Payment received but order saving failed. Please contact support with your payment ID: ${response.razorpay_payment_id}`);
+                            showToast({ type: "error", message: completeData.error ?? `Payment received but order saving failed. Contact support with payment ID: ${response.razorpay_payment_id}` });
                             setLoading(false);
                             return;
                         }
@@ -227,7 +226,7 @@ export default function CheckoutPage() {
                         router.push(`/orders/${completeData.id}`);
                     } catch {
                         setLoading(false);
-                        setError(`Payment received but order saving failed. Please contact support with payment ID: ${response.razorpay_payment_id}`);
+                        showToast({ type: "error", message: `Payment received but order saving failed. Contact support with payment ID: ${response.razorpay_payment_id}` });
                     }
                 },
                 prefill: {
@@ -252,7 +251,7 @@ export default function CheckoutPage() {
             modalOpened = true;
         } catch (err) {
             console.error("[Razorpay] Error:", err);
-            setError("Failed to open payment gateway. Please try again.");
+            showToast({ type: "error", message: "Failed to open payment gateway. Please try again." });
         } finally {
             // Only clear loading if the modal never opened (error path).
             // When modal is open, loading state is managed by handler / ondismiss.
@@ -410,12 +409,6 @@ export default function CheckoutPage() {
                                     >
                                         Try Again
                                     </button>
-                                </div>
-                            )}
-
-                            {error && (
-                                <div className="mb-6 p-3 rounded-lg text-sm" style={{ background: "#fce4ec", color: "#b71c1c", border: "1px solid #f48fb1" }}>
-                                    {error}
                                 </div>
                             )}
 
