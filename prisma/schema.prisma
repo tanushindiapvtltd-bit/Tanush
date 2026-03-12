@@ -49,13 +49,26 @@ model User {
   role       Role     @default(USER)
   createdAt  DateTime @default(now()) @map("created_at")
 
-  passwordResetTokens PasswordResetToken[]
-  orders              Order[]
-  reviews             Review[]
-  wishlistItems       WishlistItem[]
-  returnRequests      ReturnRequest[]
+  passwordResetTokens    PasswordResetToken[]
+  orders                 Order[]
+  reviews                Review[]
+  wishlistItems          WishlistItem[]
+  returnRequests         ReturnRequest[]
+  pendingRazorpayOrders  PendingRazorpayOrder[]
 
   @@map("users")
+}
+
+model PendingRazorpayOrder {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  razorpayOrderId String   @unique @map("razorpay_order_id")
+  userId          String   @map("user_id") @db.Uuid
+  expiresAt       DateTime @map("expires_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("pending_razorpay_orders")
 }
 
 model PasswordResetToken {

@@ -203,41 +203,26 @@ export default function CheckoutPage() {
                     paymentHandled = true;
                     setLoading(true);
                     try {
-                        // Payment captured — now create the DB order
-                        const orderRes = await fetch("/api/orders", {
+                        // Single endpoint: verifies signature + creates order (works even if session
+                        // cookie is lost on mobile after UPI app redirect)
+                        const completeRes = await fetch("/api/payment/razorpay/complete-order", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
                                 ...getFormData(),
-                                paymentMethod: "RAZORPAY",
-                                razorpayOrderId: response.razorpay_order_id,
-                            }),
-                        });
-                        const orderData = await orderRes.json();
-                        if (!orderRes.ok) {
-                            setError(`Payment received but order saving failed. Please contact support with your payment ID: ${response.razorpay_payment_id}`);
-                            setLoading(false);
-                            return;
-                        }
-
-                        // Verify payment signature server-side
-                        const verifyRes = await fetch("/api/payment/razorpay/verify", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
                                 razorpayOrderId: response.razorpay_order_id,
                                 razorpayPaymentId: response.razorpay_payment_id,
                                 razorpaySignature: response.razorpay_signature,
-                                orderId: orderData.id,
                             }),
                         });
-                        if (verifyRes.ok) {
-                            clearCart();
-                            router.push(`/orders/${orderData.id}`);
-                        } else {
+                        const completeData = await completeRes.json();
+                        if (!completeRes.ok) {
+                            setError(completeData.error ?? `Payment received but order saving failed. Please contact support with your payment ID: ${response.razorpay_payment_id}`);
                             setLoading(false);
-                            setError("Payment verification failed. Please contact support with payment ID: " + response.razorpay_payment_id);
+                            return;
                         }
+                        clearCart();
+                        router.push(`/orders/${completeData.id}`);
                     } catch {
                         setLoading(false);
                         setError(`Payment received but order saving failed. Please contact support with payment ID: ${response.razorpay_payment_id}`);

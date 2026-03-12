@@ -81,6 +81,13 @@ export async function POST(req: NextRequest) {
             receipt: `receipt_${Date.now()}`,
         });
 
+        // Store userId keyed by razorpay order ID so complete-order can look it up
+        // even if the session cookie is lost on mobile (UPI redirect flow)
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+        await prisma.pendingRazorpayOrder.create({
+            data: { razorpayOrderId: order.id, userId: session.user.id, expiresAt },
+        });
+
         return NextResponse.json({
             orderId: order.id,
             amount: order.amount,       // paise — used by Razorpay modal
