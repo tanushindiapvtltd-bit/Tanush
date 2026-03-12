@@ -171,6 +171,11 @@ export default function CheckoutPage() {
             return;
         }
 
+        // Track whether the modal was successfully opened (to skip setLoading(false) in finally)
+        let modalOpened = false;
+        // Track whether the payment success handler has fired
+        let paymentHandled = false;
+
         try {
             // Load Razorpay SDK
             const loaded = await loadRazorpayScript();
@@ -187,11 +192,6 @@ export default function CheckoutPage() {
             });
             const rpData = await rpRes.json();
             if (!rpRes.ok) { setError(rpData.error ?? "Payment gateway error"); return; }
-
-            // Track whether the modal was successfully opened (to skip setLoading(false) in finally)
-            let modalOpened = false;
-            // Track whether the payment success handler has fired
-            let paymentHandled = false;
 
             // Open Razorpay modal — DB order is only created AFTER payment succeeds
             const options: RazorpayOptions = {
