@@ -50,10 +50,7 @@ export default function PrintLabelPage() {
     useEffect(() => {
         fetch(`/api/admin/orders/${id}`)
             .then((r) => r.json())
-            .then((data) => {
-                setOrder(data);
-                setLoading(false);
-            })
+            .then((data) => { setOrder(data); setLoading(false); })
             .catch(() => setLoading(false));
     }, [id]);
 
@@ -64,21 +61,17 @@ export default function PrintLabelPage() {
         }
     }, [loading, order]);
 
-    if (loading) {
-        return (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
-                <p style={{ fontFamily: "sans-serif", color: "#666" }}>Loading label...</p>
-            </div>
-        );
-    }
+    if (loading) return (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+            <p style={{ fontFamily: "sans-serif", color: "#666" }}>Loading label...</p>
+        </div>
+    );
 
-    if (!order) {
-        return (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
-                <p style={{ fontFamily: "sans-serif", color: "#666" }}>Order not found.</p>
-            </div>
-        );
-    }
+    if (!order) return (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+            <p style={{ fontFamily: "sans-serif", color: "#666" }}>Order not found.</p>
+        </div>
+    );
 
     const orderDate = new Date(order.createdAt).toLocaleDateString("en-IN", {
         day: "numeric", month: "short", year: "numeric",
@@ -88,174 +81,172 @@ export default function PrintLabelPage() {
         <>
             <style>{`
                 @media print {
-                    @page { size: A5 landscape; margin: 8mm; }
+                    @page { size: A4 portrait; margin: 10mm; }
                     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                     .no-print { display: none !important; }
                 }
-                * { box-sizing: border-box; }
-                body { margin: 0; padding: 0; background: #fff; font-family: 'Helvetica Neue', Arial, sans-serif; }
+                * { box-sizing: border-box; margin: 0; padding: 0; }
+                body { background: #fff; font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; }
+                table { border-collapse: collapse; width: 100%; }
+                th, td { padding: 0; }
             `}</style>
 
-            {/* Print button - hidden when printing */}
-            <div className="no-print" style={{ padding: "12px 20px", background: "#f5f5f5", borderBottom: "1px solid #ddd", display: "flex", alignItems: "center", gap: 12 }}>
-                <button
-                    onClick={() => window.print()}
-                    style={{ padding: "8px 20px", background: "#c9a84c", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", letterSpacing: "0.06em" }}
-                >
+            {/* Toolbar */}
+            <div className="no-print" style={{ padding: "10px 20px", background: "#f5f5f5", borderBottom: "1px solid #ddd", display: "flex", gap: 10 }}>
+                <button onClick={() => window.print()}
+                    style={{ padding: "8px 20px", background: "#c9a84c", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                     Print / Save PDF
                 </button>
-                <button
-                    onClick={() => window.close()}
-                    style={{ padding: "8px 16px", background: "#fff", color: "#666", border: "1px solid #ddd", borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: "pointer" }}
-                >
+                <button onClick={() => window.close()}
+                    style={{ padding: "8px 16px", background: "#fff", color: "#666", border: "1px solid #ddd", borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
                     Close
                 </button>
             </div>
 
             {/* Label */}
-            <div style={{ maxWidth: 800, margin: "20px auto", padding: "0 16px" }}>
-                <div style={{ border: "2px solid #1a1a1a", borderRadius: 12, overflow: "hidden" }}>
+            <div style={{ maxWidth: 760, margin: "20px auto", padding: "0 16px" }}>
+                <div style={{ border: "2px solid #1a1a1a", borderRadius: 10, overflow: "hidden" }}>
 
-                    {/* Header */}
-                    <div style={{ background: "#1a1a1a", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    {/* ── Header ── */}
+                    <div style={{ background: "#1a1a1a", padding: "12px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
-                            <p style={{ color: "#c9a84c", fontWeight: 800, fontSize: 20, letterSpacing: "0.12em", margin: 0 }}>TANUSH</p>
-                            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 10, letterSpacing: "0.15em", margin: "2px 0 0" }}>PACKING LABEL</p>
+                            <div style={{ color: "#c9a84c", fontWeight: 900, fontSize: 22, letterSpacing: "0.12em" }}>TANUSH</div>
+                            <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 9, letterSpacing: "0.2em", marginTop: 2 }}>PACKING SLIP</div>
                         </div>
                         <div style={{ textAlign: "right" }}>
-                            <p style={{ color: "#fff", fontWeight: 700, fontSize: 13, margin: 0 }}>{order.orderNumber}</p>
-                            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 10, margin: "2px 0 0" }}>{orderDate}</p>
+                            <div style={{ color: "#fff", fontWeight: 800, fontSize: 14 }}>{order.orderNumber}</div>
+                            <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 10, marginTop: 2 }}>{orderDate}</div>
                         </div>
                     </div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
-                        {/* Ship To */}
-                        <div style={{ padding: "16px 20px", borderRight: "1px solid #e8e8e8", borderBottom: "1px solid #e8e8e8" }}>
-                            <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.18em", color: "#888", marginBottom: 8, textTransform: "uppercase" }}>Ship To</p>
-                            <p style={{ fontWeight: 700, fontSize: 14, color: "#1a1a1a", margin: "0 0 3px" }}>{order.shippingName}</p>
-                            <p style={{ fontSize: 12, color: "#444", margin: "0 0 2px" }}>{order.shippingAddress}{order.shippingApartment ? `, ${order.shippingApartment}` : ""}</p>
-                            <p style={{ fontSize: 12, color: "#444", margin: "0 0 2px" }}>{order.shippingCity}, {order.shippingState} – {order.shippingZip}</p>
-                            <p style={{ fontSize: 12, color: "#444", margin: "0 0 6px" }}>{order.shippingCountry}</p>
-                            {order.shippingPhone && <p style={{ fontSize: 12, fontWeight: 600, color: "#1a1a1a", margin: 0 }}>+91 {order.shippingPhone}</p>}
-                        </div>
-
-                        {/* Order Info */}
-                        <div style={{ padding: "16px 20px", borderBottom: "1px solid #e8e8e8" }}>
-                            <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.18em", color: "#888", marginBottom: 8, textTransform: "uppercase" }}>Order Info</p>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                <InfoRow label="Payment" value={order.paymentMethod === "COD" ? "Cash on Delivery" : "Paid Online"} />
-                                <InfoRow label="Status" value={order.status} />
-                                {order.deliveryTracking?.trackingNumber && (
-                                    <InfoRow label="Tracking" value={order.deliveryTracking.trackingNumber} />
-                                )}
-                                {order.deliveryTracking?.carrier && (
-                                    <InfoRow label="Carrier" value={order.deliveryTracking.carrier} />
-                                )}
-                                <InfoRow label="Total" value={`₹${order.total.toLocaleString("en-IN")}`} bold />
+                    {/* ── Address + Order Info ── */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+                        <div style={{ padding: "14px 20px", borderRight: "1px solid #e8e8e8", borderBottom: "1px solid #e8e8e8" }}>
+                            <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.18em", color: "#888", marginBottom: 8, textTransform: "uppercase" }}>Ship To</div>
+                            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>{order.shippingName}</div>
+                            <div style={{ fontSize: 12, color: "#444", marginBottom: 2 }}>
+                                {order.shippingAddress}{order.shippingApartment ? `, ${order.shippingApartment}` : ""}
                             </div>
+                            <div style={{ fontSize: 12, color: "#444", marginBottom: 2 }}>
+                                {order.shippingCity}, {order.shippingState} – {order.shippingZip}
+                            </div>
+                            <div style={{ fontSize: 12, color: "#444", marginBottom: 6 }}>{order.shippingCountry}</div>
+                            {order.shippingPhone && (
+                                <div style={{ fontSize: 12, fontWeight: 700 }}>{order.shippingPhone}</div>
+                            )}
+                        </div>
+
+                        <div style={{ padding: "14px 20px", borderBottom: "1px solid #e8e8e8" }}>
+                            <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.18em", color: "#888", marginBottom: 8, textTransform: "uppercase" }}>Order Info</div>
+                            <table>
+                                <tbody>
+                                    {[
+                                        ["Payment", order.paymentMethod === "COD" ? "Cash on Delivery" : "Paid Online"],
+                                        ["Status", order.status],
+                                        ...(order.deliveryTracking?.trackingNumber ? [["Tracking", order.deliveryTracking.trackingNumber]] : []),
+                                        ...(order.deliveryTracking?.carrier ? [["Carrier", order.deliveryTracking.carrier]] : []),
+                                        ["Total", `₹${order.total.toLocaleString("en-IN")}`],
+                                    ].map(([label, value]) => (
+                                        <tr key={label}>
+                                            <td style={{ fontSize: 11, color: "#888", paddingBottom: 4, paddingRight: 16, whiteSpace: "nowrap" }}>{label}</td>
+                                            <td style={{ fontSize: 11, fontWeight: label === "Total" ? 800 : 600, color: label === "Total" ? "#c9a84c" : "#1a1a1a", paddingBottom: 4 }}>{value}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
-                    {/* Items */}
+                    {/* ── Items Table ── */}
                     <div style={{ padding: "16px 20px" }}>
-                        <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.18em", color: "#888", marginBottom: 10, textTransform: "uppercase" }}>Items Ordered</p>
+                        <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.18em", color: "#888", marginBottom: 10, textTransform: "uppercase" }}>
+                            Items Ordered ({order.items.length})
+                        </div>
 
-                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                        <table style={{ fontSize: 12 }}>
                             <thead>
-                                <tr style={{ borderBottom: "2px solid #e8e8e8" }}>
-                                    <th style={{ textAlign: "left", paddingBottom: 6, color: "#888", fontWeight: 700, fontSize: 10, letterSpacing: "0.1em" }}>PRODUCT</th>
-                                    <th style={{ textAlign: "center", paddingBottom: 6, color: "#888", fontWeight: 700, fontSize: 10, letterSpacing: "0.1em", width: 65 }}>SIZE</th>
-                                    <th style={{ textAlign: "center", paddingBottom: 6, color: "#888", fontWeight: 700, fontSize: 10, letterSpacing: "0.1em", width: 80 }}>COLOR</th>
-                                    <th style={{ textAlign: "left", paddingBottom: 6, color: "#888", fontWeight: 700, fontSize: 10, letterSpacing: "0.1em", width: 100 }}>SKU</th>
-                                    <th style={{ textAlign: "center", paddingBottom: 6, color: "#888", fontWeight: 700, fontSize: 10, letterSpacing: "0.1em", width: 40 }}>QTY</th>
-                                    <th style={{ textAlign: "right", paddingBottom: 6, color: "#888", fontWeight: 700, fontSize: 10, letterSpacing: "0.1em", width: 80 }}>PRICE</th>
+                                <tr style={{ borderBottom: "2px solid #1a1a1a" }}>
+                                    <th style={{ textAlign: "left", paddingBottom: 7, fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", color: "#333" }}>PRODUCT</th>
+                                    <th style={{ textAlign: "center", paddingBottom: 7, fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", color: "#333", width: 60 }}>SIZE</th>
+                                    <th style={{ textAlign: "center", paddingBottom: 7, fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", color: "#333", width: 80 }}>COLOR</th>
+                                    <th style={{ textAlign: "center", paddingBottom: 7, fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", color: "#333", width: 95 }}>SKU</th>
+                                    <th style={{ textAlign: "center", paddingBottom: 7, fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", color: "#333", width: 40 }}>QTY</th>
+                                    <th style={{ textAlign: "right", paddingBottom: 7, fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", color: "#333", width: 80 }}>PRICE</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {order.items.map((item, idx) => (
-                                    <tr key={item.id} style={{ borderBottom: idx < order.items.length - 1 ? "1px solid #f0f0f0" : "none" }}>
-                                        <td style={{ padding: "8px 0", display: "flex", alignItems: "center", gap: 10 }}>
-                                            <div style={{ position: "relative", width: 36, height: 36, borderRadius: 6, overflow: "hidden", border: "1px solid #e8e8e8", flexShrink: 0 }}>
-                                                <Image src={item.productImage} alt={item.productName} fill style={{ objectFit: "cover" }} sizes="36px" />
+                                    <tr key={item.id} style={{ borderBottom: idx < order.items.length - 1 ? "1px solid #ebebeb" : "none" }}>
+                                        {/* Product */}
+                                        <td style={{ paddingTop: 10, paddingBottom: 10, verticalAlign: "middle" }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                                <div style={{ position: "relative", width: 38, height: 38, borderRadius: 6, overflow: "hidden", border: "1px solid #ddd", flexShrink: 0 }}>
+                                                    <Image src={item.productImage} alt={item.productName} fill style={{ objectFit: "cover" }} sizes="38px" />
+                                                </div>
+                                                <span style={{ fontWeight: 700, fontSize: 12, lineHeight: 1.35 }}>{item.productName}</span>
                                             </div>
-                                            <span style={{ fontWeight: 600, color: "#1a1a1a", lineHeight: 1.3 }}>{item.productName}</span>
                                         </td>
-                                        <td style={{ textAlign: "center", padding: "8px 0", verticalAlign: "middle" }}>
-                                            {item.size ? (
-                                                <span style={{ background: "#fff8e7", border: "1px solid #c9a84c", color: "#a07820", fontWeight: 700, fontSize: 11, padding: "2px 7px", borderRadius: 4 }}>
-                                                    {item.size}
-                                                </span>
-                                            ) : (
-                                                <span style={{ color: "#ccc", fontSize: 11 }}>—</span>
-                                            )}
+                                        {/* Size */}
+                                        <td style={{ textAlign: "center", paddingTop: 10, paddingBottom: 10, verticalAlign: "middle" }}>
+                                            {item.size
+                                                ? <span style={{ display: "inline-block", background: "#fff8e7", border: "1.5px solid #c9a84c", color: "#7a5800", fontWeight: 800, fontSize: 11, padding: "3px 8px", borderRadius: 4 }}>{item.size}</span>
+                                                : <span style={{ color: "#bbb", fontSize: 12 }}>—</span>
+                                            }
                                         </td>
-                                        <td style={{ textAlign: "center", padding: "8px 0", verticalAlign: "middle" }}>
-                                            {item.color ? (
-                                                <span style={{ background: "#eef2ff", border: "1px solid #aab8e8", color: "#3a4a8a", fontWeight: 600, fontSize: 11, padding: "2px 7px", borderRadius: 4 }}>
-                                                    {item.color}
-                                                </span>
-                                            ) : (
-                                                <span style={{ color: "#ccc", fontSize: 11 }}>—</span>
-                                            )}
+                                        {/* Color */}
+                                        <td style={{ textAlign: "center", paddingTop: 10, paddingBottom: 10, verticalAlign: "middle" }}>
+                                            {item.color
+                                                ? <span style={{ display: "inline-block", background: "#eef2ff", border: "1.5px solid #7986cb", color: "#303f9f", fontWeight: 700, fontSize: 11, padding: "3px 8px", borderRadius: 4 }}>{item.color}</span>
+                                                : <span style={{ color: "#bbb", fontSize: 12 }}>—</span>
+                                            }
                                         </td>
-                                        <td style={{ padding: "8px 0", verticalAlign: "middle" }}>
-                                            {item.sku ? (
-                                                <span style={{ fontFamily: "monospace", fontSize: 11, color: "#555", background: "#f5f5f5", padding: "2px 6px", borderRadius: 3 }}>
-                                                    {item.sku}
-                                                </span>
-                                            ) : (
-                                                <span style={{ color: "#ccc", fontSize: 11 }}>—</span>
-                                            )}
+                                        {/* SKU */}
+                                        <td style={{ textAlign: "center", paddingTop: 10, paddingBottom: 10, verticalAlign: "middle" }}>
+                                            {item.sku
+                                                ? <span style={{ display: "inline-block", fontFamily: "monospace", fontSize: 11, color: "#333", background: "#f3f3f3", border: "1px solid #ddd", padding: "3px 7px", borderRadius: 4 }}>{item.sku}</span>
+                                                : <span style={{ color: "#bbb", fontSize: 12 }}>—</span>
+                                            }
                                         </td>
-                                        <td style={{ textAlign: "center", padding: "8px 0", verticalAlign: "middle" }}>
-                                            <span style={{ background: "#1a1a1a", color: "#fff", fontWeight: 800, fontSize: 12, padding: "3px 9px", borderRadius: 4, display: "inline-block" }}>
-                                                {item.quantity}
-                                            </span>
+                                        {/* Qty */}
+                                        <td style={{ textAlign: "center", paddingTop: 10, paddingBottom: 10, verticalAlign: "middle" }}>
+                                            <span style={{ display: "inline-block", background: "#1a1a1a", color: "#fff", fontWeight: 900, fontSize: 13, padding: "3px 10px", borderRadius: 4, minWidth: 28 }}>{item.quantity}</span>
                                         </td>
-                                        <td style={{ textAlign: "right", padding: "8px 0", fontWeight: 600, color: "#1a1a1a", verticalAlign: "middle" }}>₹{(item.price * item.quantity).toLocaleString("en-IN")}</td>
+                                        {/* Price */}
+                                        <td style={{ textAlign: "right", paddingTop: 10, paddingBottom: 10, verticalAlign: "middle", fontWeight: 700, fontSize: 12 }}>
+                                            ₹{(item.price * item.quantity).toLocaleString("en-IN")}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
 
-                        {/* Totals */}
-                        <div style={{ borderTop: "2px solid #e8e8e8", marginTop: 10, paddingTop: 10, display: "flex", justifyContent: "flex-end" }}>
-                            <div style={{ minWidth: 200, display: "flex", flexDirection: "column", gap: 4 }}>
-                                <TotalRow label="Subtotal" value={`₹${order.subtotal.toLocaleString("en-IN")}`} />
-                                <TotalRow label="Shipping" value={`₹${order.shippingCost.toLocaleString("en-IN")}`} />
-                                <TotalRow label="Tax (3%)" value={`₹${order.tax.toLocaleString("en-IN")}`} />
-                                <div style={{ borderTop: "1px solid #e8e8e8", paddingTop: 4, marginTop: 2 }}>
-                                    <TotalRow label="Total" value={`₹${order.total.toLocaleString("en-IN")}`} bold />
-                                </div>
-                            </div>
+                        {/* ── Totals ── */}
+                        <div style={{ borderTop: "2px solid #1a1a1a", marginTop: 12, paddingTop: 12, display: "flex", justifyContent: "flex-end" }}>
+                            <table style={{ width: 220 }}>
+                                <tbody>
+                                    {[
+                                        ["Subtotal", `₹${order.subtotal.toLocaleString("en-IN")}`, false],
+                                        ["Shipping", `₹${order.shippingCost.toLocaleString("en-IN")}`, false],
+                                        ["Tax (3%)", `₹${order.tax.toLocaleString("en-IN")}`, false],
+                                        ["TOTAL", `₹${order.total.toLocaleString("en-IN")}`, true],
+                                    ].map(([label, value, bold]) => (
+                                        <tr key={String(label)} style={{ borderTop: bold ? "2px solid #1a1a1a" : "none" }}>
+                                            <td style={{ fontSize: bold ? 13 : 11, fontWeight: bold ? 800 : 400, color: bold ? "#1a1a1a" : "#666", paddingTop: bold ? 6 : 3, paddingBottom: bold ? 2 : 3, letterSpacing: bold ? "0.05em" : 0 }}>{label}</td>
+                                            <td style={{ fontSize: bold ? 14 : 11, fontWeight: 800, color: bold ? "#c9a84c" : "#1a1a1a", textAlign: "right", paddingTop: bold ? 6 : 3, paddingBottom: bold ? 2 : 3 }}>{value}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
-                    {/* Footer */}
-                    <div style={{ background: "#faf9f6", borderTop: "1px solid #e8e8e8", padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <p style={{ fontSize: 10, color: "#aaa", margin: 0 }}>Thank you for your order!</p>
-                        <p style={{ fontSize: 10, color: "#aaa", margin: 0 }}>Printed: {new Date().toLocaleDateString("en-IN")}</p>
+                    {/* ── Footer ── */}
+                    <div style={{ background: "#f8f8f8", borderTop: "1px solid #e8e8e8", padding: "9px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: 10, color: "#aaa" }}>Thank you for your order!</span>
+                        <span style={{ fontSize: 10, color: "#aaa" }}>Printed: {new Date().toLocaleDateString("en-IN")}</span>
                     </div>
                 </div>
             </div>
         </>
-    );
-}
-
-function InfoRow({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
-    return (
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-            <span style={{ fontSize: 11, color: "#888" }}>{label}</span>
-            <span style={{ fontSize: 11, fontWeight: bold ? 700 : 600, color: bold ? "#c9a84c" : "#1a1a1a" }}>{value}</span>
-        </div>
-    );
-}
-
-function TotalRow({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
-    return (
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
-            <span style={{ fontSize: 11, color: bold ? "#1a1a1a" : "#888", fontWeight: bold ? 700 : 400 }}>{label}</span>
-            <span style={{ fontSize: 11, fontWeight: bold ? 700 : 600, color: bold ? "#c9a84c" : "#1a1a1a" }}>{value}</span>
-        </div>
     );
 }

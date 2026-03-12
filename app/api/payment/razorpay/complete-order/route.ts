@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
     const productIds = items.map((i: { productId: number }) => Number(i.productId));
     const dbProducts = await prisma.product.findMany({
         where: { id: { in: productIds } },
-        select: { id: true, inStock: true, name: true, priceNum: true },
+        select: { id: true, inStock: true, name: true, priceNum: true, sku: true },
     });
     const outOfStock = dbProducts.filter((p) => !p.inStock);
     if (outOfStock.length > 0) {
@@ -115,6 +115,7 @@ export async function POST(req: NextRequest) {
 
     // 6. Server-side total calculation
     const priceMap = new Map(dbProducts.map((p) => [p.id, p.priceNum]));
+    const skuMap = new Map(dbProducts.map((p) => [p.id, p.sku]));
     const subtotal = items.reduce(
         (sum: number, item: { productId: number; quantity: number }) =>
             sum + (priceMap.get(Number(item.productId)) ?? 0) * Number(item.quantity),
@@ -167,12 +168,17 @@ export async function POST(req: NextRequest) {
                             productImage: string;
                             price: number;
                             quantity: number;
+                            size?: string;
+                            color?: string;
                         }) => ({
                             productId: item.productId,
                             productName: item.productName,
                             productImage: item.productImage,
                             price: Math.round(item.price),
                             quantity: item.quantity,
+                            size: item.size || null,
+                            color: item.color || null,
+                            sku: skuMap.get(Number(item.productId)) || null,
                         })),
                     },
                     deliveryTracking: {
