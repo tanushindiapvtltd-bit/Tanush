@@ -31,6 +31,7 @@ interface Product {
     specs: { label: string; value: string }[];
     inStock: boolean;
     colors: ColorVariant[];
+    sku: string;
 }
 
 interface Review {
@@ -370,7 +371,7 @@ export default function ProductDetailPage() {
                             {/* Add to Cart */}
                             <button
                                 onClick={() => {
-                                    addItem({ id: product.id, name: product.name, price: product.price, priceNum: product.priceNum, image: product.mainImage, subtitle: product.category });
+                                    addItem({ id: product.id, name: product.name, price: product.price, priceNum: product.priceNum, image: product.mainImage, subtitle: product.category, size: selectedSize || undefined, color: selectedColor?.name || undefined, sku: product.sku || undefined });
                                     showToast({ type: "cart", message: "Added to Bag", subMessage: product.name });
                                     setAdded(true);
                                     setTimeout(() => router.push("/cart"), 800);

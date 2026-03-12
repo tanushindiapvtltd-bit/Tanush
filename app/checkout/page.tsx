@@ -114,6 +114,8 @@ export default function CheckoutPage() {
             productImage: i.image,
             price: i.priceNum,
             quantity: i.quantity,
+            size: i.size,
+            color: i.color,
         })),
     });
 

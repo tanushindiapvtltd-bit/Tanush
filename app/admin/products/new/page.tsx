@@ -36,6 +36,7 @@ export default function NewProductPage() {
     const [inStock, setInStock] = useState(true);
     const [hsnCode, setHsnCode] = useState("");
     const [gstRate, setGstRate] = useState("0");
+    const [sku, setSku] = useState("");
     const [sizes, setSizes] = useState("");
     const [specs, setSpecs] = useState<Spec[]>([{ label: "", value: "" }]);
     const [colors, setColors] = useState<ColorVariant[]>([]);
@@ -81,6 +82,7 @@ export default function NewProductPage() {
                     inStock,
                     hsnCode,
                     gstRate: parseFloat(gstRate) || 0,
+                    sku,
                 }),
             });
             if (!res.ok) {
@@ -134,6 +136,11 @@ export default function NewProductPage() {
                         <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>GST Rate (%)</label>
                         <input type="number" value={gstRate} onChange={(e) => setGstRate(e.target.value)} placeholder="0" min="0" max="100" step="0.01" className={inputCls} style={inputStyle} />
                     </div>
+                </div>
+
+                <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: "rgba(255,255,255,0.35)" }}>SKU (Stock Keeping Unit)</label>
+                    <input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="e.g. TNS-BNG-001" className={inputCls} style={inputStyle} />
                 </div>
 
                 <div>

@@ -71,10 +71,10 @@ export default function CartPage() {
                         <div className="flex-1">
                             {items.map((item, idx) => (
                                 <CartRow
-                                    key={item.id}
+                                    key={`${item.id}-${item.size ?? ""}-${item.color ?? ""}`}
                                     item={item}
-                                    onRemove={() => { removeItem(item.id); showToast({ type: "error", message: "Removed from Bag", subMessage: item.name }); }}
-                                    onQtyChange={(qty) => updateQty(item.id, qty)}
+                                    onRemove={() => { removeItem(item.id, item.size, item.color); showToast({ type: "error", message: "Removed from Bag", subMessage: item.name }); }}
+                                    onQtyChange={(qty) => updateQty(item.id, qty, item.size, item.color)}
                                     isLast={idx === items.length - 1}
                                 />
                             ))}
@@ -196,7 +196,7 @@ function CartRow({
     onQtyChange,
     isLast,
 }: {
-    item: { id: number; name: string; price: string; priceNum: number; image: string; subtitle: string; quantity: number };
+    item: { id: number; name: string; price: string; priceNum: number; image: string; subtitle: string; quantity: number; size?: string; color?: string };
     onRemove: () => void;
     onQtyChange: (qty: number) => void;
     isLast: boolean;
@@ -221,9 +221,21 @@ function CartRow({
                         <p className="font-semibold text-[15px] mb-0.5" style={{ color: "#1a0a00" }}>
                             {item.name}
                         </p>
-                        <p className="text-xs uppercase tracking-wider mb-3" style={{ color: "#999" }}>
+                        <p className="text-xs uppercase tracking-wider mb-1" style={{ color: "#999" }}>
                             {item.subtitle}
                         </p>
+                        <div className="flex flex-wrap gap-2 mb-3">
+                            {item.size && (
+                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: "#fff8e7", border: "1px solid #c9a84c", color: "#a07820" }}>
+                                    Size: {item.size}
+                                </span>
+                            )}
+                            {item.color && (
+                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: "#f0f4ff", border: "1px solid #aab8e8", color: "#3a4a8a" }}>
+                                    {item.color}
+                                </span>
+                            )}
+                        </div>
                     </div>
                     <p className="font-bold text-base" style={{ color: "#b84c00" }}>
                         {item.price}

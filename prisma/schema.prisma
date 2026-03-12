@@ -98,6 +98,7 @@ model Product {
   hsnCode     String   @default("") @map("hsn_code")
   gstRate     Float    @default(0) @map("gst_rate")
   sizes       Json     @default("[]")
+  sku         String   @default("") @map("sku")
   inStock     Boolean  @default(true) @map("in_stock")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -147,13 +148,16 @@ model Order {
 }
 
 model OrderItem {
-  id           String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  orderId      String @map("order_id") @db.Uuid
-  productId    Int    @map("product_id")
-  productName  String @map("product_name")
-  productImage String @map("product_image")
+  id           String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId      String  @map("order_id") @db.Uuid
+  productId    Int     @map("product_id")
+  productName  String  @map("product_name")
+  productImage String  @map("product_image")
   price        Int
   quantity     Int
+  size         String? @map("size")
+  color        String? @map("color")
+  sku          String? @map("sku")
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])

@@ -39,6 +39,9 @@ interface Order {
         productImage: string;
         price: number;
         quantity: number;
+        size: string | null;
+        color: string | null;
+        sku: string | null;
     }[];
     deliveryTracking: {
         orderId: string;
@@ -146,10 +149,17 @@ export default function AdminOrderDetailPage() {
 
     return (
         <div>
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center justify-between gap-3 mb-6">
                 <Link href="/admin/orders" className="text-xs font-semibold uppercase tracking-widest hover:opacity-70" style={{ color: "#c9a84c" }}>
                     ← Orders
                 </Link>
+                <button
+                    onClick={() => window.open(`/admin/orders/${id}/print`, "_blank")}
+                    className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all cursor-pointer"
+                    style={{ background: "rgba(201,168,76,0.12)", color: "#e2c975", border: "1px solid rgba(201,168,76,0.15)" }}
+                >
+                    Print Packing Label
+                </button>
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
@@ -194,7 +204,26 @@ export default function AdminOrderDetailPage() {
                                 </div>
                                 <div className="flex-1">
                                     <p className="font-semibold text-sm" style={{ color: "rgba(255,255,255,0.85)" }}>{item.productName}</p>
-                                    <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>Qty: {item.quantity}</p>
+                                    <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                                        <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.5)" }}>
+                                            Qty: {item.quantity}
+                                        </span>
+                                        {item.size && (
+                                            <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(201,168,76,0.15)", color: "#e2c975", border: "1px solid rgba(201,168,76,0.2)" }}>
+                                                Size: {item.size}
+                                            </span>
+                                        )}
+                                        {item.color && (
+                                            <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: "rgba(100,181,246,0.1)", color: "#90caf9", border: "1px solid rgba(100,181,246,0.2)" }}>
+                                                {item.color}
+                                            </span>
+                                        )}
+                                        {item.sku && (
+                                            <span className="text-xs font-mono px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                                                SKU: {item.sku}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                                 <p className="font-bold text-sm" style={{ color: "#e2c975" }}>₹{(item.price * item.quantity).toLocaleString("en-IN")}</p>
                             </div>
