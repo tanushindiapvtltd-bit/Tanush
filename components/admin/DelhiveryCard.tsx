@@ -121,11 +121,6 @@ export default function DelhiveryCard({ order, onUpdate }: { order: Order; onUpd
         }
     }
 
-    function printLabel() {
-        if (!waybill) return;
-        window.open(`/api/admin/delhivery/label/${encodeURIComponent(waybill)}`, "_blank");
-    }
-
     async function updateShipmentDetails() {
         if (!waybill) return;
         setLoading("update");
@@ -209,13 +204,6 @@ export default function DelhiveryCard({ order, onUpdate }: { order: Order; onUpd
                             style={{ background: "linear-gradient(135deg, rgba(21,101,192,0.3), rgba(21,101,192,0.1))", color: "#64b5f6", border: "1px solid rgba(21,101,192,0.2)" }}
                         >
                             {loading === "track" ? "Tracking..." : "Live Track"}
-                        </button>
-                        <button
-                            onClick={printLabel}
-                            className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all cursor-pointer"
-                            style={{ background: "rgba(201,168,76,0.12)", color: "#e2c975", border: "1px solid rgba(201,168,76,0.15)" }}
-                        >
-                            Print Label
                         </button>
                         <button
                             onClick={() => { setShowUpdate(!showUpdate); setError(""); setUpdateSuccess(""); }}
