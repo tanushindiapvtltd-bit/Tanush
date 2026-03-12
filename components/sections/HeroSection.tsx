@@ -90,17 +90,6 @@ export default function HeroSection() {
                                 <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         </Link>
-                        <Link
-                            href="/collections/1"
-                            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-[12px] font-bold uppercase tracking-[0.16em] transition-all duration-200 hover:bg-[#faf5ea] no-underline"
-                            style={{ border: "1.5px solid #c9a84c", color: "#c9a84c", background: "transparent" }}
-                        >
-                            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#c9a84c" strokeWidth={1.8}>
-                                <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z" />
-                                <path d="M12 8v4l3 3" strokeLinecap="round" />
-                            </svg>
-                            Try in 3D
-                        </Link>
                     </div>
                 </div>
             </div>

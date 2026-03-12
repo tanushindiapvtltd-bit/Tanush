@@ -6,6 +6,7 @@ import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { useCart } from "@/lib/cartContext";
+import { useToast } from "@/lib/toastContext";
 
 const TAX_RATE = 0.03; // 3% (matches checkout)
 
@@ -13,6 +14,7 @@ interface SuggestedProduct { id: number; name: string; price: string; mainImage:
 
 export default function CartPage() {
     const { items, removeItem, updateQty, subtotal } = useCart();
+    const { showToast } = useToast();
     const shipping = 0; // complimentary
     const tax = Math.round(subtotal * TAX_RATE);
     const total = subtotal + tax;
@@ -71,7 +73,7 @@ export default function CartPage() {
                                 <CartRow
                                     key={item.id}
                                     item={item}
-                                    onRemove={() => removeItem(item.id)}
+                                    onRemove={() => { removeItem(item.id); showToast({ type: "error", message: "Removed from Bag", subMessage: item.name }); }}
                                     onQtyChange={(qty) => updateQty(item.id, qty)}
                                     isLast={idx === items.length - 1}
                                 />

@@ -9,6 +9,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { useCart } from "@/lib/cartContext";
 import { useWishlist } from "@/lib/wishlistContext";
+import { useToast } from "@/lib/toastContext";
 
 interface ColorVariant {
     name: string;
@@ -75,6 +76,7 @@ export default function ProductDetailPage() {
     const { data: session } = useSession();
     const { addItem } = useCart();
     const { isInWishlist, toggle: toggleWishlist } = useWishlist();
+    const { showToast } = useToast();
     const router = useRouter();
 
     const [product, setProduct] = useState<Product | null>(null);
@@ -195,6 +197,7 @@ export default function ProductDetailPage() {
             setReviewImagePreview(null);
             setReviewRating(5);
             setShowReviewForm(false);
+            showToast({ type: "review", message: "Review Submitted!", subMessage: "Thank you for your feedback" });
             fetchReviews();
         } finally {
             setSubmittingReview(false);
@@ -368,6 +371,7 @@ export default function ProductDetailPage() {
                             <button
                                 onClick={() => {
                                     addItem({ id: product.id, name: product.name, price: product.price, priceNum: product.priceNum, image: product.mainImage, subtitle: product.category });
+                                    showToast({ type: "cart", message: "Added to Bag", subMessage: product.name });
                                     setAdded(true);
                                     setTimeout(() => router.push("/cart"), 800);
                                 }}
@@ -381,7 +385,14 @@ export default function ProductDetailPage() {
 
                             {/* Wishlist */}
                             <button
-                                onClick={() => toggleWishlist(product.id)}
+                                onClick={() => {
+                                    toggleWishlist(product.id);
+                                    showToast(
+                                        inWishlist
+                                            ? { type: "wishlist-remove", message: "Removed from Wishlist", subMessage: product.name }
+                                            : { type: "wishlist-add", message: "Added to Wishlist", subMessage: product.name }
+                                    );
+                                }}
                                 className="w-full py-3.5 rounded-md text-[13px] font-bold tracking-[0.18em] uppercase mb-6 transition-all duration-200 cursor-pointer"
                                 style={{ background: "#fff", border: `1px solid ${inWishlist ? "#c0392b" : "#e0d5c5"}`, color: inWishlist ? "#c0392b" : "#555" }}>
                                 {inWishlist ? "♥ Added to Wishlist" : "Add to Wishlist"}

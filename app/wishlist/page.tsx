@@ -7,6 +7,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { useCart } from "@/lib/cartContext";
 import { useWishlist } from "@/lib/wishlistContext";
+import { useToast } from "@/lib/toastContext";
 
 interface WishlistProduct {
     id: string;
@@ -26,6 +27,7 @@ export default function WishlistPage() {
     const [loading, setLoading] = useState(true);
     const { addItem } = useCart();
     const { toggle } = useWishlist();
+    const { showToast } = useToast();
 
     const fetchWishlist = async () => {
         setLoading(true);
@@ -42,9 +44,10 @@ export default function WishlistPage() {
 
     useEffect(() => { fetchWishlist(); }, []);
 
-    const handleRemove = async (productId: number) => {
+    const handleRemove = async (productId: number, productName: string) => {
         await toggle(productId);
         setItems((prev) => prev.filter((i) => i.productId !== productId));
+        showToast({ type: "wishlist-remove", message: "Removed from Wishlist", subMessage: productName });
     };
 
     const handleAddToCart = (item: WishlistProduct) => {
@@ -56,6 +59,7 @@ export default function WishlistPage() {
             image: item.product.mainImage,
             subtitle: item.product.category,
         });
+        showToast({ type: "cart", message: "Added to Cart", subMessage: item.product.name });
     };
 
     return (
@@ -103,7 +107,7 @@ export default function WishlistPage() {
                             <div key={item.id} className="group relative">
                                 {/* Remove button */}
                                 <button
-                                    onClick={() => handleRemove(item.productId)}
+                                    onClick={() => handleRemove(item.productId, item.product.name)}
                                     className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110 cursor-pointer"
                                     style={{ background: "rgba(255,255,255,0.9)", color: "#e05252" }}
                                     title="Remove from wishlist"
