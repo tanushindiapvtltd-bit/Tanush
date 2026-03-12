@@ -106,19 +106,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return true;
     },
 
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
-        token.id = user.id;
-        // @ts-expect-error role is added in authorize
-        token.role = user.role ?? "USER";
-      }
-      // Refresh role from DB on each token refresh
-      if (token.id && !token.role) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: { role: true },
-        });
-        token.role = dbUser?.role ?? "USER";
+        if (account?.provider === "google") {
+          // Google OAuth: user.id is the Google sub ID, not the DB UUID.
+          // Look up the real DB UUID by email.
+          const dbUser = await prisma.user.findUnique({
+            where: { email: user.email! },
+            select: { id: true, role: true },
+          });
+          token.id = dbUser?.id;
+          token.role = dbUser?.role ?? "USER";
+        } else {
+          token.id = user.id;
+          // @ts-expect-error role is added in authorize
+          token.role = user.role ?? "USER";
+        }
       }
       return token;
     },
