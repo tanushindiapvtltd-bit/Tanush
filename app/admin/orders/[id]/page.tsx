@@ -153,13 +153,24 @@ export default function AdminOrderDetailPage() {
                 <Link href="/admin/orders" className="text-xs font-semibold uppercase tracking-widest hover:opacity-70" style={{ color: "#c9a84c" }}>
                     ← Orders
                 </Link>
-                <button
-                    onClick={() => window.open(`/admin-print/${id}`, "_blank")}
-                    className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all cursor-pointer"
-                    style={{ background: "rgba(201,168,76,0.12)", color: "#e2c975", border: "1px solid rgba(201,168,76,0.15)" }}
-                >
-                    Print Label
-                </button>
+                <div className="flex gap-2">
+                    {order.deliveryTracking?.trackingNumber && (
+                        <button
+                            onClick={() => window.open(`/api/admin/delhivery/label/${encodeURIComponent(order.deliveryTracking!.trackingNumber!)}`, "_blank")}
+                            className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all cursor-pointer"
+                            style={{ background: "linear-gradient(135deg, #c9a84c, #e2c975)", color: "#0c0c0c", boxShadow: "0 4px 15px rgba(201,168,76,0.3)" }}
+                        >
+                            Print Label
+                        </button>
+                    )}
+                    <button
+                        onClick={() => window.open(`/admin-print/${id}`, "_blank")}
+                        className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all cursor-pointer"
+                        style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.1)" }}
+                    >
+                        Packing Slip
+                    </button>
+                </div>
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
