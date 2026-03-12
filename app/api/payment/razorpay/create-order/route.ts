@@ -68,33 +68,44 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Items are required" }, { status: 400 });
     }
 
+    // Step 1: Create Razorpay order
+    let rpOrder: { id: string; amount: number | string; currency: string };
     try {
         const Razorpay = (await import("razorpay")).default;
         const razorpay = new Razorpay({
             key_id: process.env.RAZORPAY_KEY_ID,
             key_secret: process.env.RAZORPAY_KEY_SECRET,
         });
-
-        const order = await razorpay.orders.create({
+        rpOrder = await razorpay.orders.create({
             amount: amountInPaise,
             currency: "INR",
             receipt: `receipt_${Date.now()}`,
         });
-
-        // Store userId keyed by razorpay order ID so complete-order can look it up
-        // even if the session cookie is lost on mobile (UPI redirect flow)
-        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-        await prisma.pendingRazorpayOrder.create({
-            data: { razorpayOrderId: order.id, userId: session.user.id, expiresAt },
-        });
-
-        return NextResponse.json({
-            orderId: order.id,
-            amount: order.amount,       // paise — used by Razorpay modal
-            currency: order.currency,
-        });
     } catch (error) {
         console.error("[Razorpay] Create order error:", error);
-        return NextResponse.json({ error: "Payment gateway error" }, { status: 500 });
+        return NextResponse.json({ error: "Payment gateway error. Please try again." }, { status: 500 });
     }
+
+    // Step 2: Persist the pending record so complete-order can resolve userId
+    // (done after Razorpay succeeds so a DB failure doesn't orphan a payment)
+    try {
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+        await prisma.pendingRazorpayOrder.create({
+            data: { razorpayOrderId: rpOrder.id, userId: session.user.id, expiresAt },
+        });
+    } catch (dbError) {
+        console.error("[Razorpay] Failed to store pending order:", dbError);
+        // Razorpay order was created but we can't link it — return error so client
+        // doesn't open the modal (no payment will be possible without this record).
+        return NextResponse.json(
+            { error: "Payment session could not be initialised. Please try again." },
+            { status: 500 }
+        );
+    }
+
+    return NextResponse.json({
+        orderId: rpOrder.id,
+        amount: rpOrder.amount,      // paise — used by Razorpay modal
+        currency: rpOrder.currency,
+    });
 }

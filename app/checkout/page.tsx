@@ -188,6 +188,8 @@ export default function CheckoutPage() {
             const rpData = await rpRes.json();
             if (!rpRes.ok) { setError(rpData.error ?? "Payment gateway error"); return; }
 
+            // Track whether the modal was successfully opened (to skip setLoading(false) in finally)
+            let modalOpened = false;
             // Track whether the payment success handler has fired
             let paymentHandled = false;
 
@@ -247,11 +249,14 @@ export default function CheckoutPage() {
 
             const rzp = new window.Razorpay(options);
             rzp.open();
+            modalOpened = true;
         } catch (err) {
             console.error("[Razorpay] Error:", err);
             setError("Failed to open payment gateway. Please try again.");
         } finally {
-            setLoading(false);
+            // Only clear loading if the modal never opened (error path).
+            // When modal is open, loading state is managed by handler / ondismiss.
+            if (!modalOpened) setLoading(false);
         }
     };
 
