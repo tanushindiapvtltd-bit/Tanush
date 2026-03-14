@@ -23,6 +23,7 @@ export async function GET(
             Authorization: `Token ${token}`,
             Accept: "application/json, application/pdf, */*",
         },
+        cache: "no-store",
     });
 
     if (!res.ok) {
@@ -42,6 +43,7 @@ export async function GET(
             headers: {
                 "Content-Type": "application/pdf",
                 "Content-Disposition": `inline; filename="label-${waybill}.pdf"`,
+                "Cache-Control": "no-store, no-cache, must-revalidate",
             },
         });
     }
@@ -75,7 +77,7 @@ export async function GET(
     }
 
     // Fetch the actual PDF from S3 / CDN
-    const pdfRes = await fetch(pdfUrl);
+    const pdfRes = await fetch(pdfUrl, { cache: "no-store" });
     if (!pdfRes.ok) {
         return NextResponse.json(
             { error: "Failed to fetch PDF from storage", status: pdfRes.status },
@@ -88,6 +90,7 @@ export async function GET(
         headers: {
             "Content-Type": "application/pdf",
             "Content-Disposition": `inline; filename="label-${waybill}.pdf"`,
+            "Cache-Control": "no-store, no-cache, must-revalidate",
         },
     });
 }

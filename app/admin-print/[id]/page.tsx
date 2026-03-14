@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
+import Barcode from "react-barcode";
+import Image from "next/image";
 
 interface OrderItem {
     id: string;
@@ -131,7 +133,19 @@ export default function PrintLabelPage() {
             {/* ── LABEL ── */}
             <div style={{ maxWidth: 560, margin: "20px auto", border: "2px solid #000", fontSize: 11 }}>
 
-                {/* Row 1: Customer Address + Waybill */}
+                {/* Header: Tanush logo + Delhivery partner */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: "2px solid #000", background: "#fff" }}>
+                    {/* Tanush Logo */}
+                    <Image
+                        src="/tanush-logo-transparent.png"
+                        alt="Tanush Jewellery"
+                        width={100}
+                        height={36}
+                        style={{ objectFit: "contain", objectPosition: "left center" }}
+                    />
+                </div>
+
+                {/* Row 1: Customer Address + Waybill barcode */}
                 <table style={{ borderBottom: "2px solid #000" }}>
                     <tbody>
                         <tr>
@@ -151,28 +165,22 @@ export default function PrintLabelPage() {
                                 )}
                             </td>
 
-                            {/* Waybill + Brand */}
-                            <td style={{ width: "40%", padding: "10px 12px", verticalAlign: "top", textAlign: "center" }}>
+                            {/* Waybill barcode */}
+                            <td style={{ width: "40%", padding: "10px 8px", verticalAlign: "top", textAlign: "center" }}>
                                 <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", color: "#555", marginBottom: 6, textTransform: "uppercase" }}>Waybill</div>
                                 {waybill ? (
-                                    <>
-                                        {/* Simple barcode-style visual */}
-                                        <div style={{ display: "flex", justifyContent: "center", gap: 1, marginBottom: 6 }}>
-                                            {waybill.split("").map((ch, i) => (
-                                                <div key={i} style={{
-                                                    width: ch.charCodeAt(0) % 2 === 0 ? 2 : 1,
-                                                    height: 32,
-                                                    background: "#000",
-                                                }} />
-                                            ))}
-                                        </div>
-                                        <div style={{ fontFamily: "Courier New, monospace", fontSize: 10, fontWeight: 700, letterSpacing: "0.05em" }}>{waybill}</div>
-                                    </>
+                                    <Barcode
+                                        value={waybill}
+                                        format="CODE128"
+                                        width={1.2}
+                                        height={50}
+                                        fontSize={9}
+                                        margin={0}
+                                        displayValue={true}
+                                    />
                                 ) : (
                                     <div style={{ fontSize: 10, color: "#aaa" }}>No waybill</div>
                                 )}
-                                <div style={{ marginTop: 10, fontWeight: 900, fontSize: 13, letterSpacing: "0.12em" }}>TANUSH</div>
-                                <div style={{ fontSize: 8, color: "#888", letterSpacing: "0.15em" }}>JEWELLERY</div>
                             </td>
                         </tr>
                     </tbody>
@@ -287,7 +295,7 @@ export default function PrintLabelPage() {
                 {/* Footer */}
                 <div style={{ borderTop: "2px solid #000", padding: "6px 12px", background: "#f8f8f8", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontSize: 9, color: "#666" }}>Printed: {new Date().toLocaleDateString("en-IN")}</span>
-                    <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em" }}>TANUSH JEWELLERY</span>
+                    <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em" }}>TANUSH</span>
                 </div>
             </div>
         </div>

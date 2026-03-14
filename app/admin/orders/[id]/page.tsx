@@ -154,15 +154,6 @@ export default function AdminOrderDetailPage() {
                     ← Orders
                 </Link>
                 <div className="flex gap-2">
-                    {order.deliveryTracking?.trackingNumber && (
-                        <button
-                            onClick={() => window.open(`/api/admin/delhivery/label/${encodeURIComponent(order.deliveryTracking!.trackingNumber!)}`, "_blank")}
-                            className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all cursor-pointer"
-                            style={{ background: "linear-gradient(135deg, #c9a84c, #e2c975)", color: "#0c0c0c", boxShadow: "0 4px 15px rgba(201,168,76,0.3)" }}
-                        >
-                            Print Label
-                        </button>
-                    )}
                     <button
                         onClick={() => window.open(`/admin-print/${id}`, "_blank")}
                         className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all cursor-pointer"
