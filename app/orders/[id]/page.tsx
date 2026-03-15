@@ -405,7 +405,7 @@ export default function OrderDetailPage() {
                                             </p>
                                             {tracking.carrier === "Delhivery" && (
                                                 <a
-                                                    href={`https://www.delhivery.com/tracking/${tracking.trackingNumber}`}
+                                                    href="https://www.delhivery.com/"
                                                     target="_blank"
                                                     rel="noreferrer"
                                                     className="flex-shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full hover:opacity-80 transition-opacity"
