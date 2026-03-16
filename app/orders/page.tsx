@@ -37,7 +37,7 @@ export default function OrdersPage() {
                 if (!r.ok) throw new Error("Failed");
                 return r.json();
             })
-            .then((data) => setOrders(Array.isArray(data) ? data : []))
+            .then((data) => setOrders(Array.isArray(data) ? [...data].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) : []))
             .catch(() => setFetchError(true))
             .finally(() => setLoading(false));
     }, []);

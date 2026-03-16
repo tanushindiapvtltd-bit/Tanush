@@ -33,7 +33,12 @@ export interface DelhiveryShipment {
     sellerInvoice?: string;
 }
 
-// ─── Helper ───────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Strip characters that break Delhivery's parser: & # % ; \ */
+function sanitize(s: string): string {
+    return s.replace(/[&#%;\\]/g, "").trim();
+}
 
 async function safeJson(res: Response): Promise<Record<string, unknown>> {
     const text = await res.text();
@@ -244,7 +249,11 @@ export async function createShipment(
     const body = `format=json&data=${encodeURIComponent(JSON.stringify(payload))}`;
     const res = await fetch(`${BASE_URL}/api/cmu/create.json`, {
         method: "POST",
-        headers: { Authorization: `Token ${tok()}`, "Content-Type": "application/json", Accept: "application/json" },
+        headers: {
+            Authorization: `Token ${tok()}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+            Accept: "application/json",
+        },
         body,
     });
 
@@ -330,7 +339,17 @@ export async function schedulePickup(p: {
 }
 
 // ─── 10. Reverse Pickup (Return) ─────────────────────────────────────────────
-// Creates a reverse pickup where Delhivery picks up from the customer's address
+// payment_mode = "Pickup" → Delhivery picks up FROM customer (name/add/pin),
+// delivers TO warehouse (return_add/return_pin). Official docs:
+// https://track.delhivery.com/api/cmu/create.json
+
+export interface DelhiveryReturnItem {
+    name: string;
+    sku: string;
+    price: number;
+    quantity: number;
+    url?: string;   // Cloudinary product image — delivery boy uses this to verify the returned item
+}
 
 export async function createReverseShipment(p: {
     orderNumber: string;
@@ -340,72 +359,100 @@ export async function createReverseShipment(p: {
     customerPin: string;
     customerCity: string;
     customerState: string;
-    productsDesc: string;
     quantity: number;
-    weight: number;
+    weight: number;     // grams
     totalAmount: number;
+    items: DelhiveryReturnItem[];
 }): Promise<{ waybill: string; success: boolean; message: string }> {
-    const sellerName    = process.env.DELHIVERY_SELLER_NAME ?? "";
-    const returnAdd     = process.env.DELHIVERY_RETURN_ADDRESS ?? "";
-    const returnCity    = process.env.DELHIVERY_RETURN_CITY ?? "";
-    const returnPin     = process.env.DELHIVERY_RETURN_PIN ?? "";
-    const returnPhone   = process.env.DELHIVERY_RETURN_PHONE ?? "";
-    const returnState   = process.env.DELHIVERY_RETURN_STATE ?? "";
-    const warehouseName = process.env.DELHIVERY_WAREHOUSE_NAME ?? "";
+    const warehouseName  = process.env.DELHIVERY_WAREHOUSE_NAME ?? "";
+    const returnName     = sanitize(process.env.DELHIVERY_SELLER_NAME ?? "");
+    const returnPhone    = process.env.DELHIVERY_RETURN_PHONE ?? "";
+    const returnAdd      = sanitize(process.env.DELHIVERY_RETURN_ADDRESS ?? "");
+    const returnCity     = sanitize(process.env.DELHIVERY_RETURN_CITY ?? "");
+    const returnState    = sanitize(process.env.DELHIVERY_RETURN_STATE ?? "");
+    const returnPin      = process.env.DELHIVERY_RETURN_PIN ?? "";
 
-    // Fetch a fresh waybill for the return shipment
-    const waybill = await fetchWaybills();
+    // Derive products_desc from items (sanitized)
+    const productsDesc = sanitize(
+        p.items.map((i) => `${i.name} x${i.quantity}`).join(", ")
+    );
+
+    // Order ID must be unique every time — append timestamp to guard against retries
+    const uniqueOrderId = `RETURN-${p.orderNumber}-${Date.now()}`;
 
     const payload = {
-        shipments: [{
-            waybill,
-            name: p.customerName,
-            add: p.customerAddress,
-            pin: p.customerPin,
-            city: p.customerCity,
-            state: p.customerState,
-            country: "India",
-            phone: p.customerPhone,
-            payment_mode: "Prepaid",
-            order: `RET-${p.orderNumber}`,
-            return_pin: returnPin,
-            return_city: returnCity,
-            return_phone: returnPhone,
-            return_add: returnAdd,
-            return_name: sellerName,
-            return_state: returnState,
-            return_country: "India",
-            products_desc: p.productsDesc,
-            hsn_code: "",
-            cod_amount: 0,
-            order_date: new Date().toISOString().split("T")[0],
-            total_amount: p.totalAmount,
-            seller_gstin: process.env.DELHIVERY_GSTIN ?? "",
-            shipment_width: 10,
-            shipment_height: 10,
-            weight: p.weight,
-            seller_name: p.customerName,
-            seller_add: p.customerAddress,
-            seller_city: p.customerCity,
-            seller_state: p.customerState,
-            seller_country: "India",
-            seller_pin: p.customerPin,
-            seller_inv: `RET-${p.orderNumber}`,
-            quantity: p.quantity,
-            shipment_length: 10,
-            fragile_shipment: false,
-        }],
+        shipments: [
+            {
+                // ── Pickup location (customer) ──────────────────────────────
+                name:    sanitize(p.customerName),
+                phone:   p.customerPhone,
+                add:     sanitize(p.customerAddress),
+                city:    sanitize(p.customerCity),
+                state:   sanitize(p.customerState),
+                pin:     p.customerPin,
+                country: "India",
+
+                // ── Drop / delivery location (warehouse) ────────────────────
+                return_name:    returnName,
+                return_phone:   returnPhone,
+                return_add:     returnAdd,
+                return_city:    returnCity,
+                return_state:   returnState,
+                return_pin:     returnPin,
+                return_country: "India",
+
+                // ── Shipment meta ───────────────────────────────────────────
+                order:            uniqueOrderId,
+                payment_mode:     "Pickup",   // reverse pickup
+                pickup_location:  warehouseName,
+                waybill:          "",         // auto-assigned by Delhivery
+                cod_amount:       0,
+                total_amount:     p.totalAmount,
+                weight:           p.weight,
+                quantity:         String(p.quantity),
+                products_desc:    productsDesc,
+                hsn_code:         "",
+                order_date:       new Date().toISOString().split("T")[0],
+                seller_name:      returnName,
+                seller_add:       returnAdd,
+                seller_inv:       uniqueOrderId,
+                seller_gstin:     process.env.DELHIVERY_GSTIN ?? "",
+                shipment_length:  10,
+                shipment_width:   10,
+                shipment_height:  10,
+                fragile_shipment: false,
+
+                // ── Per-item details with Cloudinary URLs ───────────────────
+                // Delivery agent uses `url` to visually verify the returned product.
+                shipment_details: p.items.map((item) => ({
+                    sku:   sanitize(item.sku || item.name),
+                    name:  sanitize(item.name),
+                    units: item.quantity,
+                    price: item.price,
+                    url:   item.url ?? "",
+                })),
+            },
+        ],
+        // Top-level pickup_location required by Delhivery (must match registered WH name exactly)
         pickup_location: { name: warehouseName },
     };
 
     const body = `format=json&data=${encodeURIComponent(JSON.stringify(payload))}`;
+    console.log("[Delhivery Reverse] payload:", JSON.stringify(payload, null, 2));
+
     const res = await fetch(`${BASE_URL}/api/cmu/create.json`, {
         method: "POST",
-        headers: { Authorization: `Token ${tok()}`, "Content-Type": "application/json", Accept: "application/json" },
+        headers: {
+            Authorization: `Token ${tok()}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+            Accept: "application/json",
+        },
         body,
     });
 
     const data = await safeJson(res);
+    console.log("[Delhivery Reverse] response:", JSON.stringify(data));
+
     if (!res.ok) throw new Error(`Reverse shipment failed (${res.status}): ${JSON.stringify(data)}`);
 
     const packages = (data.packages as Array<{ waybill?: string; status?: string; remarks?: string }>) ?? [];

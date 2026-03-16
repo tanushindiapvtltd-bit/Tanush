@@ -440,9 +440,15 @@ function ReturnCard({
                     <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-2" style={{ color: "rgba(255,255,255,0.25)" }}>Proof Images ({images.length})</p>
                     <div className="flex gap-2 flex-wrap">
                         {images.map((url, i) => (
-                            <button key={i} onClick={() => onExpandImage(url)} className="relative rounded-lg overflow-hidden cursor-zoom-in" style={{ width: 72, height: 72, background: "rgba(255,255,255,0.05)" }}>
-                                <Image src={url} alt={`Proof ${i + 1}`} fill style={{ objectFit: "cover" }} sizes="72px" />
-                            </button>
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                                key={i}
+                                src={url}
+                                alt={`Proof ${i + 1}`}
+                                onClick={() => onExpandImage(url)}
+                                className="rounded-lg object-cover cursor-zoom-in"
+                                style={{ width: 72, height: 72, border: "1px solid rgba(255,255,255,0.1)" }}
+                            />
                         ))}
                     </div>
                 </div>

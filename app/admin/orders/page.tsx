@@ -41,7 +41,7 @@ export default function AdminOrdersPage() {
     useEffect(() => {
         fetch("/api/admin/orders")
             .then((r) => r.json())
-            .then((data) => setOrders(Array.isArray(data) ? data : []))
+            .then((data) => setOrders(Array.isArray(data) ? [...data].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) : []))
             .finally(() => setLoading(false));
     }, []);
 

@@ -60,19 +60,25 @@ export async function PATCH(
 
         let returnWaybill = "";
         try {
-            const productsDesc = order.items.map((i) => `${i.productName} x${i.quantity}`).join(", ");
             const result = await createReverseShipment({
                 orderNumber: order.orderNumber,
                 customerName: order.shippingName,
                 customerPhone: order.shippingPhone ?? "9999999999",
-                customerAddress: order.shippingAddress,
+                customerAddress: [order.shippingAddress, order.shippingApartment].filter(Boolean).join(", "),
                 customerPin: order.shippingZip,
                 customerCity: order.shippingCity,
                 customerState: order.shippingState,
-                productsDesc,
                 quantity: order.items.reduce((s, i) => s + i.quantity, 0),
                 weight: 500,
                 totalAmount: order.total,
+                // items include Cloudinary image URLs so Delhivery agent can verify returned products
+                items: order.items.map((i) => ({
+                    name: i.productName,
+                    sku: i.sku ?? i.productName,
+                    price: i.price,
+                    quantity: i.quantity,
+                    url: i.productImage ?? "",
+                })),
             });
             returnWaybill = result.waybill;
         } catch (e) {
@@ -142,7 +148,7 @@ export async function PATCH(
 
     // ── PROCESS REFUND ─────────────────────────────────────────────────────────
     if (action === "process_refund") {
-        if (returnRequest.status !== "RECEIVED") {
+        if (!["RECEIVED", "REFUND_FAILED"].includes(returnRequest.status)) {
             return NextResponse.json({ error: "Only received returns can be refunded" }, { status: 400 });
         }
 
@@ -189,6 +195,8 @@ export async function PATCH(
 
             const refund = await razorpay.payments.refund(razorpayPaymentId, {
                 amount: refundAmount * 100, // rupees → paise
+                speed: "optimum",
+                receipt: `rfnd_${id}`,      // unique per refund — aids Razorpay support queries
                 notes: {
                     reason: "Product Return",
                     order_number: order.orderNumber,

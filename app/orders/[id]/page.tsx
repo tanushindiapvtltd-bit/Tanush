@@ -656,8 +656,8 @@ export default function OrderDetailPage() {
                                                 <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#888" }}>Proof Images (optional, up to 5)</label>
                                                 <div className="flex gap-2 flex-wrap mb-2">
                                                     {proofImages.map((url, i) => (
-                                                        <div key={i} className="relative" style={{ width: 64, height: 64 }}>
-                                                            <img src={url} alt="" className="w-full h-full rounded-lg object-cover" style={{ border: "1px solid #e0d5c5" }} />
+                                                        <div key={i} className="relative rounded-lg overflow-hidden" style={{ width: 64, height: 64, border: "1px solid #e0d5c5" }}>
+                                                            <Image src={url} alt={`Proof ${i + 1}`} fill style={{ objectFit: "cover" }} sizes="64px" />
                                                             <button
                                                                 onClick={() => setProofImages((prev) => prev.filter((_, j) => j !== i))}
                                                                 className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full text-white text-[10px] font-bold flex items-center justify-center"
