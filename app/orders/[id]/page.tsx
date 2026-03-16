@@ -103,11 +103,19 @@ export default function OrderDetailPage() {
     const [retryError, setRetryError] = useState("");
     const [cancelling, setCancelling] = useState(false);
     const [cancelError, setCancelError] = useState("");
-    const [returnReason, setReturnReason] = useState("");
+    const [returnReason, setReturnReason] = useState<string>("");
+    const [returnDescription, setReturnDescription] = useState("");
+    const [proofImages, setProofImages] = useState<string[]>([]);
+    const [uploadingProof, setUploadingProof] = useState(false);
     const [returnSubmitting, setReturnSubmitting] = useState(false);
     const [returnError, setReturnError] = useState("");
     const [returnSuccess, setReturnSuccess] = useState(false);
-    const [existingReturn, setExistingReturn] = useState<{ status: string; reason: string; returnWaybill: string | null; adminNote: string | null } | null>(null);
+    const [existingReturn, setExistingReturn] = useState<{
+        status: string; returnReason: string; reason: string;
+        returnWaybill: string | null; adminNote: string | null;
+        rejectionReason: string | null; refundAmount: number; deliveryCharges: number;
+        receivedAt: string | null; refundProcessedAt: string | null; razorpayRefundId: string | null;
+    } | null>(null);
     const { clearCart } = useCart();
 
     useEffect(() => {
@@ -118,7 +126,7 @@ export default function OrderDetailPage() {
         // Fetch existing return request
         fetch(`/api/orders/${id}/return`)
             .then((r) => r.ok ? r.json() : [])
-            .then((data: { status: string; reason: string; returnWaybill: string | null; adminNote: string | null }[]) => {
+            .then((data: NonNullable<typeof existingReturn>[]) => {
                 const active = data.find((r) => r.status !== "REJECTED");
                 if (active) setExistingReturn(active);
             })
@@ -143,21 +151,41 @@ export default function OrderDetailPage() {
         }
     };
 
+    const handleProofUpload = async (file: File) => {
+        if (proofImages.length >= 5) { setReturnError("Maximum 5 images allowed"); return; }
+        setUploadingProof(true);
+        setReturnError("");
+        try {
+            const fd = new FormData();
+            fd.append("file", file);
+            const res = await fetch("/api/upload/return", { method: "POST", body: fd });
+            const data = await res.json();
+            if (!res.ok) { setReturnError(data.error ?? "Upload failed"); return; }
+            setProofImages((prev) => [...prev, data.url]);
+        } finally {
+            setUploadingProof(false);
+        }
+    };
+
     const handleReturnRequest = async () => {
-        if (!order || !returnReason.trim()) return;
+        if (!order || !returnReason || !returnDescription.trim()) return;
         setReturnSubmitting(true);
         setReturnError("");
         try {
             const res = await fetch(`/api/orders/${order.id}/return`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ reason: returnReason.trim() }),
+                body: JSON.stringify({ returnReason, description: returnDescription.trim(), proofImages }),
             });
             const data = await res.json();
             if (!res.ok) { setReturnError(data.error ?? "Failed to submit return request"); return; }
             setReturnSuccess(true);
-            setExistingReturn({ status: "PENDING", reason: returnReason.trim(), returnWaybill: null, adminNote: null });
-            setReturnReason("");
+            setExistingReturn({
+                status: "PENDING", returnReason, reason: returnDescription.trim(),
+                returnWaybill: null, adminNote: null, rejectionReason: null,
+                refundAmount: data.refundAmount ?? 0, deliveryCharges: data.deliveryCharges ?? 0,
+                receivedAt: null, refundProcessedAt: null, razorpayRefundId: null,
+            });
         } finally {
             setReturnSubmitting(false);
         }
@@ -495,61 +523,165 @@ export default function OrderDetailPage() {
 
                         {/* Return Request — only for DELIVERED orders */}
                         {order.status === "DELIVERED" && (() => {
-                            const returnStatusStyle: Record<string, { bg: string; text: string }> = {
-                                PENDING: { bg: "#fff8e6", text: "#d4860e" },
-                                APPROVED: { bg: "#e8f5e9", text: "#2e7d32" },
-                                REJECTED: { bg: "#fce4ec", text: "#b71c1c" },
-                                COMPLETED: { bg: "#e3f2fd", text: "#1565c0" },
+                            const RETURN_STATUS_INFO: Record<string, { bg: string; text: string; label: string; desc: string }> = {
+                                PENDING: { bg: "#fff8e6", text: "#d4860e", label: "Under Review", desc: "We've received your request and are reviewing it. Please do not ship the item yet." },
+                                APPROVED: { bg: "#e8f5e9", text: "#2e7d32", label: "Approved — Ship Item Back", desc: "Your return is approved. Please ship the item using the waybill below. Refund will be processed after we receive it." },
+                                REJECTED: { bg: "#fce4ec", text: "#b71c1c", label: "Not Approved", desc: "Your return request was not approved." },
+                                RECEIVED: { bg: "#e3f2fd", text: "#1565c0", label: "Item Received — Processing Refund", desc: "We've received your item and are processing your refund within 48 hours." },
+                                REFUND_PROCESSED: { bg: "#e8f5e9", text: "#1b5e20", label: "Refund Processed", desc: "Your refund has been processed. It will reflect in your account within 2–5 business days." },
+                                REFUND_FAILED: { bg: "#fce4ec", text: "#b71c1c", label: "Refund Issue", desc: "We encountered an issue processing your refund. Our team will contact you shortly." },
+                                COMPLETED: { bg: "#e3f2fd", text: "#1565c0", label: "Completed", desc: "Your return has been completed." },
                             };
+                            const REASON_LABELS: Record<string, string> = {
+                                DAMAGED: "Item Damaged",
+                                WRONG_ITEM: "Wrong Item Received",
+                                QUALITY_ISSUE: "Quality Issue",
+                                CHANGED_MIND: "Changed Mind",
+                                OTHER: "Other",
+                            };
+
                             if (existingReturn) {
-                                const s = returnStatusStyle[existingReturn.status] ?? { bg: "#f5f5f5", text: "#555" };
+                                const s = RETURN_STATUS_INFO[existingReturn.status] ?? { bg: "#f5f5f5", text: "#555", label: existingReturn.status, desc: "" };
                                 return (
                                     <div className="rounded-xl p-6" style={{ background: "#fff", border: "1px solid #e8e3db" }}>
                                         <h2 className="text-sm font-bold uppercase tracking-[0.08em] mb-4" style={{ color: "#1a1a1a" }}>Return Request</h2>
-                                        <div className="mb-3">
+                                        <div className="mb-3 flex items-center gap-2">
                                             <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider" style={{ background: s.bg, color: s.text }}>
-                                                {existingReturn.status}
+                                                {s.label}
                                             </span>
                                         </div>
-                                        <p className="text-sm mb-2" style={{ color: "#555" }}><span style={{ color: "#aaa" }}>Reason: </span>{existingReturn.reason}</p>
-                                        {existingReturn.adminNote && (
-                                            <p className="text-sm mb-2" style={{ color: "#555" }}><span style={{ color: "#aaa" }}>Note: </span>{existingReturn.adminNote}</p>
-                                        )}
-                                        {existingReturn.returnWaybill && (
-                                            <div className="mt-3 p-3 rounded-lg" style={{ background: "#e8f5e9", border: "1px solid #a5d6a7" }}>
-                                                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#999" }}>Return Pickup Waybill</p>
-                                                <p className="text-sm font-mono font-bold" style={{ color: "#2e7d32" }}>{existingReturn.returnWaybill}</p>
-                                                <p className="text-xs mt-1" style={{ color: "#555" }}>Our courier will pick up the item from your address.</p>
+                                        {s.desc && <p className="text-sm mb-3" style={{ color: "#555" }}>{s.desc}</p>}
+
+                                        <div className="p-3 rounded-lg mb-3" style={{ background: "#faf9f6", border: "1px solid #e8e3db" }}>
+                                            <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: "#aaa" }}>Reason</p>
+                                            <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>{REASON_LABELS[existingReturn.returnReason] ?? existingReturn.returnReason}</p>
+                                            {existingReturn.reason && <p className="text-sm mt-1" style={{ color: "#666" }}>{existingReturn.reason}</p>}
+                                        </div>
+
+                                        {existingReturn.refundAmount > 0 && (
+                                            <div className="p-3 rounded-lg mb-3" style={{ background: "#faf9f6", border: "1px solid #e8e3db" }}>
+                                                <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#aaa" }}>Refund Breakdown</p>
+                                                <div className="flex justify-between text-sm">
+                                                    <span style={{ color: "#555" }}>Product price</span>
+                                                    <span className="font-bold" style={{ color: "#c9a84c" }}>₹{existingReturn.refundAmount.toLocaleString("en-IN")}</span>
+                                                </div>
+                                                {existingReturn.deliveryCharges > 0 && (
+                                                    <div className="flex justify-between text-sm mt-1">
+                                                        <span style={{ color: "#aaa" }}>Delivery charges (non-refundable)</span>
+                                                        <span style={{ color: "#b71c1c" }}>₹{existingReturn.deliveryCharges.toLocaleString("en-IN")}</span>
+                                                    </div>
+                                                )}
                                             </div>
+                                        )}
+
+                                        {existingReturn.returnWaybill && (
+                                            <div className="mt-3 p-4 rounded-lg" style={{ background: "#e8f5e9", border: "1px solid #a5d6a7" }}>
+                                                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#999" }}>Return Pickup Waybill</p>
+                                                <p className="text-base font-mono font-bold mb-1" style={{ color: "#2e7d32" }}>{existingReturn.returnWaybill}</p>
+                                                <p className="text-xs" style={{ color: "#555" }}>Our courier will pick up the item from your address.</p>
+                                            </div>
+                                        )}
+
+                                        {existingReturn.rejectionReason && (
+                                            <div className="mt-3 p-3 rounded-lg" style={{ background: "#fce4ec", border: "1px solid #f48fb1" }}>
+                                                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#999" }}>Rejection Reason</p>
+                                                <p className="text-sm" style={{ color: "#b71c1c" }}>{existingReturn.rejectionReason}</p>
+                                            </div>
+                                        )}
+
+                                        {existingReturn.refundProcessedAt && (
+                                            <div className="mt-3 p-3 rounded-lg" style={{ background: "#e8f5e9", border: "1px solid #a5d6a7" }}>
+                                                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#999" }}>Refund Processed</p>
+                                                <p className="text-sm font-bold" style={{ color: "#2e7d32" }}>₹{existingReturn.refundAmount.toLocaleString("en-IN")}</p>
+                                                <p className="text-xs mt-0.5" style={{ color: "#555" }}>
+                                                    {new Date(existingReturn.refundProcessedAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+                                                </p>
+                                                {existingReturn.razorpayRefundId && (
+                                                    <p className="text-[10px] mt-1 font-mono" style={{ color: "#888" }}>Ref: {existingReturn.razorpayRefundId}</p>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {existingReturn.adminNote && (
+                                            <p className="text-sm mt-3" style={{ color: "#555" }}><span style={{ color: "#aaa" }}>Note: </span>{existingReturn.adminNote}</p>
                                         )}
                                     </div>
                                 );
                             }
+
                             return (
                                 <div className="rounded-xl p-6" style={{ background: "#fff", border: "1px solid #e8e3db" }}>
-                                    <h2 className="text-sm font-bold uppercase tracking-[0.08em] mb-2" style={{ color: "#1a1a1a" }}>Request a Return</h2>
-                                    <p className="text-xs mb-4" style={{ color: "#aaa" }}>Returns accepted within 3 days of delivery.</p>
+                                    <h2 className="text-sm font-bold uppercase tracking-[0.08em] mb-1" style={{ color: "#1a1a1a" }}>Request a Return</h2>
+                                    <p className="text-xs mb-5" style={{ color: "#aaa" }}>Returns accepted within 7 days of delivery. Only product price is refunded; delivery charges are non-refundable.</p>
                                     {returnSuccess ? (
-                                        <div className="p-3 rounded-lg" style={{ background: "#e8f5e9", border: "1px solid #a5d6a7" }}>
+                                        <div className="p-4 rounded-lg" style={{ background: "#e8f5e9", border: "1px solid #a5d6a7" }}>
                                             <p className="text-sm font-semibold" style={{ color: "#2e7d32" }}>Return request submitted!</p>
-                                            <p className="text-xs mt-1" style={{ color: "#388e3c" }}>We&apos;ll review your request and notify you by email.</p>
+                                            <p className="text-xs mt-1" style={{ color: "#388e3c" }}>We&apos;ll review your request within 24–48 hours and notify you by email. Do not ship the item until you receive approval.</p>
                                         </div>
                                     ) : (
                                         <>
-                                            <textarea
-                                                value={returnReason}
-                                                onChange={(e) => setReturnReason(e.target.value)}
-                                                placeholder="Please describe why you want to return this item..."
-                                                rows={3}
-                                                className="w-full rounded-lg px-4 py-3 text-sm outline-none resize-none mb-3"
-                                                style={{ border: "1px solid #e0d5c5" }}
-                                            />
+                                            {/* Reason dropdown */}
+                                            <div className="mb-3">
+                                                <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#888" }}>Return Reason *</label>
+                                                <select
+                                                    value={returnReason}
+                                                    onChange={(e) => setReturnReason(e.target.value)}
+                                                    className="w-full rounded-lg px-4 py-3 text-sm outline-none"
+                                                    style={{ border: "1px solid #e0d5c5", background: "#fff", color: returnReason ? "#1a1a1a" : "#aaa" }}
+                                                >
+                                                    <option value="">Select a reason...</option>
+                                                    <option value="DAMAGED">Item Damaged</option>
+                                                    <option value="WRONG_ITEM">Wrong Item Received</option>
+                                                    <option value="QUALITY_ISSUE">Quality Issue</option>
+                                                    <option value="CHANGED_MIND">Changed Mind</option>
+                                                    <option value="OTHER">Other</option>
+                                                </select>
+                                            </div>
+
+                                            {/* Description */}
+                                            <div className="mb-3">
+                                                <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#888" }}>Description *</label>
+                                                <textarea
+                                                    value={returnDescription}
+                                                    onChange={(e) => setReturnDescription(e.target.value)}
+                                                    placeholder="Please describe the issue in detail..."
+                                                    rows={3}
+                                                    className="w-full rounded-lg px-4 py-3 text-sm outline-none resize-none"
+                                                    style={{ border: "1px solid #e0d5c5" }}
+                                                />
+                                            </div>
+
+                                            {/* Proof images */}
+                                            <div className="mb-4">
+                                                <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#888" }}>Proof Images (optional, up to 5)</label>
+                                                <div className="flex gap-2 flex-wrap mb-2">
+                                                    {proofImages.map((url, i) => (
+                                                        <div key={i} className="relative" style={{ width: 64, height: 64 }}>
+                                                            <img src={url} alt="" className="w-full h-full rounded-lg object-cover" style={{ border: "1px solid #e0d5c5" }} />
+                                                            <button
+                                                                onClick={() => setProofImages((prev) => prev.filter((_, j) => j !== i))}
+                                                                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full text-white text-[10px] font-bold flex items-center justify-center"
+                                                                style={{ background: "#b71c1c" }}
+                                                            >✕</button>
+                                                        </div>
+                                                    ))}
+                                                    {proofImages.length < 5 && (
+                                                        <label className="flex items-center justify-center rounded-lg cursor-pointer transition-colors hover:bg-amber-50" style={{ width: 64, height: 64, border: "1.5px dashed #c9a84c" }}>
+                                                            <span className="text-xl" style={{ color: "#c9a84c" }}>{uploadingProof ? "..." : "+"}</span>
+                                                            <input type="file" accept="image/*" className="hidden" disabled={uploadingProof}
+                                                                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleProofUpload(f); e.target.value = ""; }} />
+                                                        </label>
+                                                    )}
+                                                </div>
+                                                <p className="text-[11px]" style={{ color: "#bbb" }}>JPEG, PNG or WebP · Max 5MB each</p>
+                                            </div>
+
                                             {returnError && (
                                                 <p className="mb-3 text-xs font-semibold px-3 py-2 rounded-lg" style={{ background: "#fce4ec", color: "#b71c1c" }}>{returnError}</p>
                                             )}
                                             <button
                                                 onClick={handleReturnRequest}
-                                                disabled={returnSubmitting || !returnReason.trim()}
+                                                disabled={returnSubmitting || !returnReason || !returnDescription.trim()}
                                                 className="px-5 py-2.5 rounded-lg text-sm font-bold uppercase tracking-widest text-white transition-opacity hover:opacity-90 cursor-pointer disabled:opacity-50"
                                                 style={{ background: "#1a1a1a" }}
                                             >

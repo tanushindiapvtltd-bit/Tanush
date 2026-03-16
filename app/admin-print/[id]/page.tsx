@@ -193,7 +193,7 @@ export default function PrintLabelPage() {
                             <td style={{ width: "60%", padding: "8px 12px", borderRight: "2px solid #000", verticalAlign: "middle" }}>
                                 {isPrepaid ? (
                                     <div style={{ fontWeight: 800, fontSize: 12, color: "#000" }}>
-                                        Prepaid: <span style={{ fontWeight: 400 }}>Do not collect cash</span>
+                                        Prepaid: <span style={{ fontWeight: 400 }}>₹{order.total.toLocaleString("en-IN")} — Do not collect cash</span>
                                     </div>
                                 ) : (
                                     <div style={{ fontWeight: 800, fontSize: 12, color: "#000" }}>
@@ -217,7 +217,7 @@ export default function PrintLabelPage() {
                         <tr>
                             <td style={{ padding: "8px 12px", verticalAlign: "top" }}>
                                 <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", color: "#555", marginBottom: 5, textTransform: "uppercase" }}>If undelivered, return to:</div>
-                                <div style={{ fontWeight: 800, fontSize: 12 }}>{sellerName}</div>
+                                <div style={{ fontWeight: 800, fontSize: 12 }}>Tanush India Pvt Ltd</div>
                                 {returnAddress && (
                                     <div style={{ fontSize: 11, color: "#222", lineHeight: 1.55, marginTop: 2 }}>
                                         {returnAddress}

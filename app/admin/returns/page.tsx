@@ -2,38 +2,76 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
+
+type ReturnStatus = "PENDING" | "APPROVED" | "REJECTED" | "RECEIVED" | "REFUND_PROCESSED" | "REFUND_FAILED" | "COMPLETED";
+type ReturnReason = "DAMAGED" | "WRONG_ITEM" | "QUALITY_ISSUE" | "CHANGED_MIND" | "OTHER";
 
 interface ReturnItem {
     id: string;
+    returnReason: ReturnReason;
     reason: string;
-    status: "PENDING" | "APPROVED" | "REJECTED" | "COMPLETED";
+    proofImages: string[];
+    refundAmount: number;
+    deliveryCharges: number;
+    status: ReturnStatus;
     adminNote: string | null;
+    rejectionReason: string | null;
     returnWaybill: string | null;
+    inspectionNotes: string | null;
+    receivedAt: string | null;
+    refundProcessedAt: string | null;
+    razorpayRefundId: string | null;
+    refundStatus: string | null;
+    refundFailureReason: string | null;
     createdAt: string;
     order: {
         id: string;
         orderNumber: string;
         total: number;
+        subtotal: number;
+        shippingCost: number;
+        tax: number;
+        paymentMethod: string;
+        razorpayPaymentId: string | null;
         shippingName: string;
         shippingEmail: string;
+        shippingPhone: string | null;
+        shippingAddress: string;
+        shippingApartment: string | null;
+        shippingCity: string;
+        shippingState: string;
+        shippingZip: string;
         items: { productName: string; quantity: number; price: number }[];
     };
     user: { name: string; email: string };
 }
 
-const STATUS_STYLE: Record<string, { bg: string; text: string; glow: string }> = {
-    PENDING: { bg: "rgba(212,134,14,0.12)", text: "#f0b641", glow: "0 0 8px rgba(212,134,14,0.15)" },
-    APPROVED: { bg: "rgba(46,125,50,0.12)", text: "#81c784", glow: "0 0 8px rgba(46,125,50,0.15)" },
-    REJECTED: { bg: "rgba(183,28,28,0.12)", text: "#ef5350", glow: "0 0 8px rgba(183,28,28,0.15)" },
-    COMPLETED: { bg: "rgba(21,101,192,0.12)", text: "#64b5f6", glow: "0 0 8px rgba(21,101,192,0.15)" },
+const REASON_LABELS: Record<ReturnReason, string> = {
+    DAMAGED: "Item Damaged",
+    WRONG_ITEM: "Wrong Item Received",
+    QUALITY_ISSUE: "Quality Issue",
+    CHANGED_MIND: "Changed Mind",
+    OTHER: "Other",
+};
+
+const STATUS_STYLE: Record<string, { bg: string; text: string; label: string }> = {
+    PENDING: { bg: "rgba(212,134,14,0.12)", text: "#f0b641", label: "Pending Review" },
+    APPROVED: { bg: "rgba(46,125,50,0.12)", text: "#81c784", label: "Approved" },
+    REJECTED: { bg: "rgba(183,28,28,0.12)", text: "#ef5350", label: "Rejected" },
+    RECEIVED: { bg: "rgba(21,101,192,0.12)", text: "#64b5f6", label: "Item Received" },
+    REFUND_PROCESSED: { bg: "rgba(46,125,50,0.18)", text: "#a5d6a7", label: "Refund Processed" },
+    REFUND_FAILED: { bg: "rgba(183,28,28,0.18)", text: "#ff8a80", label: "Refund Failed" },
+    COMPLETED: { bg: "rgba(21,101,192,0.12)", text: "#64b5f6", label: "Completed" },
 };
 
 export default function AdminReturnsPage() {
     const [returns, setReturns] = useState<ReturnItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState<string | null>(null);
-    const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
-    const [error, setError] = useState<Record<string, string>>({});
+    const [notes, setNotes] = useState<Record<string, { admin?: string; rejection?: string; inspection?: string }>>({});
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [expandedImages, setExpandedImages] = useState<string | null>(null);
 
     const fetchReturns = async () => {
         const res = await fetch("/api/admin/returns");
@@ -41,24 +79,32 @@ export default function AdminReturnsPage() {
         setReturns(data);
     };
 
-    useEffect(() => {
-        fetchReturns().finally(() => setLoading(false));
-    }, []);
+    useEffect(() => { fetchReturns().finally(() => setLoading(false)); }, []);
 
-    async function handleAction(id: string, action: "approve" | "reject" | "complete") {
+    const setNote = (id: string, key: "admin" | "rejection" | "inspection", val: string) => {
+        setNotes((prev) => ({ ...prev, [id]: { ...prev[id], [key]: val } }));
+    };
+
+    async function handleAction(id: string, action: string, extra?: Record<string, string>) {
         setProcessing(id + action);
-        setError((prev) => ({ ...prev, [id]: "" }));
+        setErrors((prev) => ({ ...prev, [id]: "" }));
         try {
+            const n = notes[id] ?? {};
             const res = await fetch(`/api/admin/returns/${id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action, adminNote: adminNotes[id] ?? "" }),
+                body: JSON.stringify({
+                    action,
+                    adminNote: n.admin ?? "",
+                    rejectionReason: extra?.rejection ?? n.rejection ?? "",
+                    inspectionNotes: extra?.inspection ?? n.inspection ?? "",
+                }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error ?? "Failed");
             await fetchReturns();
         } catch (e: unknown) {
-            setError((prev) => ({ ...prev, [id]: e instanceof Error ? e.message : "Error" }));
+            setErrors((prev) => ({ ...prev, [id]: e instanceof Error ? e.message : "Error" }));
         } finally {
             setProcessing(null);
         }
@@ -66,7 +112,9 @@ export default function AdminReturnsPage() {
 
     const pending = returns.filter((r) => r.status === "PENDING");
     const approved = returns.filter((r) => r.status === "APPROVED");
-    const processed = returns.filter((r) => r.status === "REJECTED" || r.status === "COMPLETED");
+    const received = returns.filter((r) => r.status === "RECEIVED");
+    const failed = returns.filter((r) => r.status === "REFUND_FAILED");
+    const done = returns.filter((r) => ["REJECTED", "REFUND_PROCESSED", "COMPLETED"].includes(r.status));
 
     if (loading) return (
         <div className="flex justify-center py-20">
@@ -79,7 +127,9 @@ export default function AdminReturnsPage() {
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <h1 className="text-2xl font-bold" style={{ color: "#fff" }}>Returns</h1>
-                    <p className="text-sm mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>{pending.length} pending · {approved.length} approved · {processed.length} processed</p>
+                    <p className="text-sm mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>
+                        {pending.length} pending · {approved.length} approved · {received.length} received · {failed.length} failed · {done.length} done
+                    </p>
                 </div>
             </div>
 
@@ -89,133 +139,285 @@ export default function AdminReturnsPage() {
                 </div>
             )}
 
-            {/* Pending */}
-            {pending.length > 0 && (
-                <div className="mb-8">
-                    <h2 className="text-xs font-bold uppercase tracking-[0.15em] mb-4" style={{ color: "#e2c975" }}>Pending ({pending.length})</h2>
-                    <div className="flex flex-col gap-4">
-                        {pending.map((r) => (
-                            <ReturnCard
-                                key={r.id}
-                                r={r}
-                                adminNote={adminNotes[r.id] ?? ""}
-                                onNoteChange={(v) => setAdminNotes((prev) => ({ ...prev, [r.id]: v }))}
-                                onApprove={() => handleAction(r.id, "approve")}
-                                onReject={() => handleAction(r.id, "reject")}
-                                onComplete={() => { }}
-                                processing={processing}
-                                errorMsg={error[r.id] ?? ""}
-                            />
-                        ))}
+            {/* Image lightbox */}
+            {expandedImages && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    style={{ background: "rgba(0,0,0,0.85)" }}
+                    onClick={() => setExpandedImages(null)}
+                >
+                    <div className="relative max-w-2xl w-full max-h-[85vh]">
+                        <Image
+                            src={expandedImages}
+                            alt="Proof image"
+                            width={800}
+                            height={600}
+                            className="rounded-xl object-contain max-h-[85vh] w-full"
+                            style={{ background: "#111" }}
+                        />
+                        <button
+                            className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center text-white font-bold"
+                            style={{ background: "rgba(0,0,0,0.6)" }}
+                            onClick={() => setExpandedImages(null)}
+                        >✕</button>
                     </div>
                 </div>
             )}
 
-            {/* Approved — awaiting pickup/return */}
-            {approved.length > 0 && (
-                <div className="mb-8">
-                    <h2 className="text-xs font-bold uppercase tracking-[0.15em] mb-4" style={{ color: "#81c784" }}>Approved — Awaiting Return ({approved.length})</h2>
-                    <div className="flex flex-col gap-4">
-                        {approved.map((r) => (
-                            <ReturnCard
-                                key={r.id}
-                                r={r}
-                                adminNote={adminNotes[r.id] ?? ""}
-                                onNoteChange={(v) => setAdminNotes((prev) => ({ ...prev, [r.id]: v }))}
-                                onApprove={() => { }}
-                                onReject={() => { }}
-                                onComplete={() => handleAction(r.id, "complete")}
-                                processing={processing}
-                                errorMsg={error[r.id] ?? ""}
-                                showComplete
-                            />
-                        ))}
-                    </div>
-                </div>
-            )}
+            <Section title={`Pending Review (${pending.length})`} color="#f0b641" show={pending.length > 0}>
+                {pending.map((r) => (
+                    <ReturnCard key={r.id} r={r} notes={notes[r.id] ?? {}} setNote={(k, v) => setNote(r.id, k, v)} processing={processing} errorMsg={errors[r.id] ?? ""} onExpandImage={setExpandedImages}>
+                        <div className="pt-4 mt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-3" style={{ color: "rgba(255,255,255,0.25)" }}>Admin Actions</p>
+                            <div className="flex flex-col gap-2 mb-3">
+                                <textarea
+                                    placeholder="Internal note (optional)"
+                                    value={notes[r.id]?.admin ?? ""}
+                                    onChange={(e) => setNote(r.id, "admin", e.target.value)}
+                                    rows={2}
+                                    className="w-full rounded-xl px-3 py-2 text-sm outline-none resize-none"
+                                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff" }}
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Rejection reason (required to reject)"
+                                    value={notes[r.id]?.rejection ?? ""}
+                                    onChange={(e) => setNote(r.id, "rejection", e.target.value)}
+                                    className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+                                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff" }}
+                                />
+                            </div>
+                            {errors[r.id] && <ErrorMsg msg={errors[r.id]} />}
+                            <div className="flex gap-2 flex-wrap">
+                                <ActionButton
+                                    label="Approve & Create Return Shipment"
+                                    loadingLabel="Approving..."
+                                    processingKey={r.id + "approve"}
+                                    processing={processing}
+                                    onClick={() => handleAction(r.id, "approve")}
+                                    color="green"
+                                />
+                                <ActionButton
+                                    label="Reject"
+                                    loadingLabel="Rejecting..."
+                                    processingKey={r.id + "reject"}
+                                    processing={processing}
+                                    onClick={() => handleAction(r.id, "reject")}
+                                    color="red"
+                                />
+                            </div>
+                        </div>
+                    </ReturnCard>
+                ))}
+            </Section>
 
-            {/* Processed */}
-            {processed.length > 0 && (
-                <div>
-                    <h2 className="text-xs font-bold uppercase tracking-[0.15em] mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>Processed ({processed.length})</h2>
-                    <div className="flex flex-col gap-4">
-                        {processed.map((r) => (
-                            <ReturnCard
-                                key={r.id}
-                                r={r}
-                                adminNote=""
-                                onNoteChange={() => { }}
-                                onApprove={() => { }}
-                                onReject={() => { }}
-                                onComplete={() => { }}
-                                processing={null}
-                                errorMsg=""
-                                readonly
+            <Section title={`Approved — Awaiting Customer Shipment (${approved.length})`} color="#81c784" show={approved.length > 0}>
+                {approved.map((r) => (
+                    <ReturnCard key={r.id} r={r} notes={notes[r.id] ?? {}} setNote={(k, v) => setNote(r.id, k, v)} processing={processing} errorMsg={errors[r.id] ?? ""} onExpandImage={setExpandedImages}>
+                        <div className="pt-4 mt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-3" style={{ color: "rgba(255,255,255,0.25)" }}>Mark as Received</p>
+                            <input
+                                type="text"
+                                placeholder="Inspection notes (optional)"
+                                value={notes[r.id]?.inspection ?? ""}
+                                onChange={(e) => setNote(r.id, "inspection", e.target.value)}
+                                className="w-full rounded-xl px-3 py-2 text-sm outline-none mb-3"
+                                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff" }}
                             />
-                        ))}
-                    </div>
-                </div>
-            )}
+                            {errors[r.id] && <ErrorMsg msg={errors[r.id]} />}
+                            <ActionButton
+                                label="Mark Package Received at Warehouse"
+                                loadingLabel="Marking..."
+                                processingKey={r.id + "mark_received"}
+                                processing={processing}
+                                onClick={() => handleAction(r.id, "mark_received")}
+                                color="blue"
+                            />
+                        </div>
+                    </ReturnCard>
+                ))}
+            </Section>
+
+            <Section title={`Received — Process Refund (${received.length})`} color="#64b5f6" show={received.length > 0}>
+                {received.map((r) => (
+                    <ReturnCard key={r.id} r={r} notes={notes[r.id] ?? {}} setNote={(k, v) => setNote(r.id, k, v)} processing={processing} errorMsg={errors[r.id] ?? ""} onExpandImage={setExpandedImages}>
+                        <div className="pt-4 mt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                            <div className="mb-3 p-3 rounded-xl" style={{ background: "rgba(21,101,192,0.1)", border: "1px solid rgba(21,101,192,0.2)" }}>
+                                <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-1" style={{ color: "rgba(255,255,255,0.4)" }}>Refund Summary</p>
+                                <div className="flex justify-between text-sm">
+                                    <span style={{ color: "rgba(255,255,255,0.6)" }}>Product price</span>
+                                    <span style={{ color: "#64b5f6", fontWeight: 700 }}>₹{r.refundAmount.toLocaleString("en-IN")}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <span style={{ color: "rgba(255,255,255,0.4)" }}>Delivery charges (non-refundable)</span>
+                                    <span style={{ color: "#ef5350" }}>₹{r.deliveryCharges.toLocaleString("en-IN")}</span>
+                                </div>
+                                <div className="flex justify-between text-sm font-bold pt-2 mt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+                                    <span style={{ color: "#fff" }}>Will refund via {r.order.paymentMethod === "COD" ? "manual" : "Razorpay"}</span>
+                                    <span style={{ color: "#64b5f6" }}>₹{r.refundAmount.toLocaleString("en-IN")}</span>
+                                </div>
+                                {r.order.paymentMethod === "COD" && (
+                                    <p className="text-[11px] mt-2" style={{ color: "rgba(255,255,255,0.4)" }}>COD order — refund will be marked as manually processed.</p>
+                                )}
+                                {r.order.paymentMethod === "RAZORPAY" && !r.order.razorpayPaymentId && (
+                                    <p className="text-[11px] mt-2" style={{ color: "#ef5350" }}>⚠ No Razorpay payment ID found — cannot process automated refund.</p>
+                                )}
+                            </div>
+                            {r.receivedAt && (
+                                <p className="text-xs mb-3" style={{ color: "rgba(255,255,255,0.35)" }}>
+                                    Received at warehouse: {new Date(r.receivedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
+                                </p>
+                            )}
+                            {r.inspectionNotes && (
+                                <p className="text-xs mb-3" style={{ color: "rgba(255,255,255,0.5)" }}>Inspection notes: {r.inspectionNotes}</p>
+                            )}
+                            {errors[r.id] && <ErrorMsg msg={errors[r.id]} />}
+                            <ActionButton
+                                label={`Process Refund — ₹${r.refundAmount.toLocaleString("en-IN")}`}
+                                loadingLabel="Processing Refund..."
+                                processingKey={r.id + "process_refund"}
+                                processing={processing}
+                                onClick={() => handleAction(r.id, "process_refund")}
+                                color="gold"
+                            />
+                        </div>
+                    </ReturnCard>
+                ))}
+            </Section>
+
+            <Section title={`Refund Failed — Retry (${failed.length})`} color="#ff8a80" show={failed.length > 0}>
+                {failed.map((r) => (
+                    <ReturnCard key={r.id} r={r} notes={notes[r.id] ?? {}} setNote={(k, v) => setNote(r.id, k, v)} processing={processing} errorMsg={errors[r.id] ?? ""} onExpandImage={setExpandedImages}>
+                        <div className="pt-4 mt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                            {r.refundFailureReason && (
+                                <div className="mb-3 p-3 rounded-xl" style={{ background: "rgba(183,28,28,0.1)", border: "1px solid rgba(183,28,28,0.2)" }}>
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-1" style={{ color: "rgba(255,255,255,0.35)" }}>Failure Reason</p>
+                                    <p className="text-sm" style={{ color: "#ff8a80" }}>{r.refundFailureReason}</p>
+                                </div>
+                            )}
+                            {errors[r.id] && <ErrorMsg msg={errors[r.id]} />}
+                            <ActionButton
+                                label={`Retry Refund — ₹${r.refundAmount.toLocaleString("en-IN")}`}
+                                loadingLabel="Retrying..."
+                                processingKey={r.id + "process_refund"}
+                                processing={processing}
+                                onClick={() => handleAction(r.id, "process_refund")}
+                                color="gold"
+                            />
+                        </div>
+                    </ReturnCard>
+                ))}
+            </Section>
+
+            <Section title={`Completed (${done.length})`} color="rgba(255,255,255,0.3)" show={done.length > 0}>
+                {done.map((r) => (
+                    <ReturnCard key={r.id} r={r} notes={{}} setNote={() => {}} processing={null} errorMsg="" onExpandImage={setExpandedImages} readonly />
+                ))}
+            </Section>
         </div>
     );
 }
 
+function Section({ title, color, show, children }: { title: string; color: string; show: boolean; children: React.ReactNode }) {
+    if (!show) return null;
+    return (
+        <div className="mb-10">
+            <h2 className="text-xs font-bold uppercase tracking-[0.15em] mb-4" style={{ color }}>{title}</h2>
+            <div className="flex flex-col gap-4">{children}</div>
+        </div>
+    );
+}
+
+function ErrorMsg({ msg }: { msg: string }) {
+    return (
+        <p className="mb-3 text-xs font-semibold px-3 py-2 rounded-xl" style={{ background: "rgba(183,28,28,0.12)", color: "#ef5350", border: "1px solid rgba(183,28,28,0.2)" }}>{msg}</p>
+    );
+}
+
+function ActionButton({ label, loadingLabel, processingKey, processing, onClick, color }: {
+    label: string; loadingLabel: string; processingKey: string;
+    processing: string | null; onClick: () => void;
+    color: "green" | "red" | "blue" | "gold";
+}) {
+    const styles = {
+        green: { background: "linear-gradient(135deg, rgba(46,125,50,0.3), rgba(46,125,50,0.1))", color: "#81c784", border: "1px solid rgba(46,125,50,0.2)" },
+        red: { background: "rgba(183,28,28,0.12)", color: "#ef5350", border: "1px solid rgba(183,28,28,0.15)" },
+        blue: { background: "linear-gradient(135deg, rgba(21,101,192,0.3), rgba(21,101,192,0.1))", color: "#64b5f6", border: "1px solid rgba(21,101,192,0.2)" },
+        gold: { background: "linear-gradient(135deg, rgba(201,168,76,0.3), rgba(201,168,76,0.1))", color: "#e2c975", border: "1px solid rgba(201,168,76,0.2)" },
+    };
+    return (
+        <button
+            onClick={onClick}
+            disabled={!!processing}
+            className="px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all cursor-pointer disabled:opacity-50"
+            style={styles[color]}
+        >
+            {processing === processingKey ? loadingLabel : label}
+        </button>
+    );
+}
+
 function ReturnCard({
-    r, adminNote, onNoteChange, onApprove, onReject, onComplete, processing, errorMsg, readonly, showComplete,
+    r, notes, setNote, processing, errorMsg, onExpandImage, readonly, children,
 }: {
     r: ReturnItem;
-    adminNote: string;
-    onNoteChange: (v: string) => void;
-    onApprove: () => void;
-    onReject: () => void;
-    onComplete?: () => void;
+    notes: { admin?: string; rejection?: string; inspection?: string };
+    setNote: (k: "admin" | "rejection" | "inspection", v: string) => void;
     processing: string | null;
     errorMsg: string;
+    onExpandImage: (url: string) => void;
     readonly?: boolean;
-    showComplete?: boolean;
+    children?: React.ReactNode;
 }) {
-    const style = STATUS_STYLE[r.status] ?? { bg: "rgba(255,255,255,0.05)", text: "rgba(255,255,255,0.5)", glow: "none" };
+    void notes; void setNote; void processing; void errorMsg;
+    const style = STATUS_STYLE[r.status] ?? { bg: "rgba(255,255,255,0.05)", text: "rgba(255,255,255,0.5)", label: r.status };
+    const images = Array.isArray(r.proofImages) ? r.proofImages : [];
 
     return (
         <div
-            className="rounded-2xl p-6 transition-all duration-200"
+            className="rounded-2xl p-6"
             style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
-            onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(255,255,255,0.05)";
-                e.currentTarget.style.borderColor = "rgba(201,168,76,0.12)";
-            }}
-            onMouseLeave={(e) => {
-                e.currentTarget.style.background = "rgba(255,255,255,0.03)";
-                e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
-            }}
         >
+            {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
                 <div>
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <Link
-                            href={`/admin/orders/${r.order.id}`}
-                            className="text-sm font-bold hover:opacity-70 transition-opacity"
-                            style={{ color: "#e2c975" }}
-                        >
+                        <Link href={`/admin/orders/${r.order.id}`} className="text-sm font-bold hover:opacity-70" style={{ color: "#e2c975" }}>
                             {r.order.orderNumber}
                         </Link>
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider" style={{ background: style.bg, color: style.text, boxShadow: style.glow }}>
-                            {r.status}
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider" style={{ background: style.bg, color: style.text }}>
+                            {style.label}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider" style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.4)" }}>
+                            {r.order.paymentMethod}
                         </span>
                     </div>
-                    <p className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>
-                        {r.user.name} · {r.user.email}
-                    </p>
+                    <p className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>{r.user.name} · {r.user.email}</p>
+                    {r.order.shippingPhone && <p className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>{r.order.shippingPhone}</p>}
                     <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.3)" }}>
                         Requested {new Date(r.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                     </p>
                 </div>
-                <p className="text-sm font-bold" style={{ color: "#e2c975" }}>₹{r.order.total.toLocaleString("en-IN")}</p>
+                <div className="text-right">
+                    <p className="text-sm font-bold" style={{ color: "#e2c975" }}>₹{r.order.total.toLocaleString("en-IN")}</p>
+                    <p className="text-[11px] mt-0.5" style={{ color: "#64b5f6" }}>Refund: ₹{r.refundAmount.toLocaleString("en-IN")}</p>
+                    {r.deliveryCharges > 0 && (
+                        <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.3)" }}>Delivery ₹{r.deliveryCharges.toLocaleString("en-IN")} not refunded</p>
+                    )}
+                </div>
+            </div>
+
+            {/* Shipping address */}
+            <div className="mb-4 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-1" style={{ color: "rgba(255,255,255,0.25)" }}>Shipping Address</p>
+                <p className="text-xs" style={{ color: "rgba(255,255,255,0.55)" }}>
+                    {r.order.shippingAddress}{r.order.shippingApartment ? `, ${r.order.shippingApartment}` : ""}, {r.order.shippingCity}, {r.order.shippingState} – {r.order.shippingZip}
+                </p>
             </div>
 
             {/* Items */}
             <div className="mb-4 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
-                <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-2" style={{ color: "rgba(255,255,255,0.25)" }}>Items</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-2" style={{ color: "rgba(255,255,255,0.25)" }}>Order Items</p>
                 {r.order.items.map((item, i) => (
                     <p key={i} className="text-xs" style={{ color: "rgba(255,255,255,0.55)" }}>
                         {item.productName} × {item.quantity} — ₹{(item.price * item.quantity).toLocaleString("en-IN")}
@@ -223,22 +425,30 @@ function ReturnCard({
                 ))}
             </div>
 
-            {/* Reason */}
+            {/* Return reason + description */}
             <div className="mb-4 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
                 <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-1" style={{ color: "rgba(255,255,255,0.25)" }}>Return Reason</p>
-                <p className="text-sm" style={{ color: "rgba(255,255,255,0.8)" }}>{r.reason}</p>
+                <p className="text-xs font-semibold mb-1" style={{ color: "#e2c975" }}>
+                    {REASON_LABELS[r.returnReason] ?? r.returnReason}
+                </p>
+                <p className="text-sm" style={{ color: "rgba(255,255,255,0.75)" }}>{r.reason}</p>
             </div>
 
-            {/* Admin note + waybill for processed */}
-            {r.adminNote && (
-                <div className="mb-4 p-3 rounded-xl" style={{
-                    background: r.status === "REJECTED" ? "rgba(183,28,28,0.08)" : "rgba(46,125,50,0.08)",
-                    border: `1px solid ${r.status === "REJECTED" ? "rgba(183,28,28,0.15)" : "rgba(46,125,50,0.15)"}`,
-                }}>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-1" style={{ color: "rgba(255,255,255,0.25)" }}>Admin Note</p>
-                    <p className="text-sm" style={{ color: "rgba(255,255,255,0.8)" }}>{r.adminNote}</p>
+            {/* Proof images */}
+            {images.length > 0 && (
+                <div className="mb-4">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-2" style={{ color: "rgba(255,255,255,0.25)" }}>Proof Images ({images.length})</p>
+                    <div className="flex gap-2 flex-wrap">
+                        {images.map((url, i) => (
+                            <button key={i} onClick={() => onExpandImage(url)} className="relative rounded-lg overflow-hidden cursor-zoom-in" style={{ width: 72, height: 72, background: "rgba(255,255,255,0.05)" }}>
+                                <Image src={url} alt={`Proof ${i + 1}`} fill style={{ objectFit: "cover" }} sizes="72px" />
+                            </button>
+                        ))}
+                    </div>
                 </div>
             )}
+
+            {/* Return waybill */}
             {r.returnWaybill && (
                 <div className="mb-4 p-3 rounded-xl" style={{ background: "rgba(46,125,50,0.08)", border: "1px solid rgba(46,125,50,0.15)" }}>
                     <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-1" style={{ color: "rgba(255,255,255,0.25)" }}>Return Waybill</p>
@@ -246,58 +456,34 @@ function ReturnCard({
                 </div>
             )}
 
-            {/* Actions */}
-            {(!readonly || showComplete) && (
-                <div className="pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                    <div className="mb-3">
-                        <label className="block text-[10px] font-bold uppercase tracking-[0.15em] mb-1" style={{ color: "rgba(255,255,255,0.25)" }}>
-                            Note to customer (optional)
-                        </label>
-                        <input
-                            type="text"
-                            value={adminNote}
-                            onChange={(e) => onNoteChange(e.target.value)}
-                            placeholder={showComplete ? "e.g. Refund of ₹499 initiated..." : "e.g. Item must be unused, Approved — pickup in 2 days..."}
-                            className="w-full rounded-xl px-3 py-2 text-sm outline-none"
-                            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff" }}
-                        />
-                    </div>
-                    {errorMsg && (
-                        <p className="mb-3 text-xs font-semibold px-3 py-2 rounded-xl" style={{ background: "rgba(183,28,28,0.12)", color: "#ef5350", border: "1px solid rgba(183,28,28,0.2)" }}>{errorMsg}</p>
-                    )}
-                    <div className="flex gap-2">
-                        {showComplete ? (
-                            <button
-                                onClick={onComplete}
-                                disabled={!!processing}
-                                className="px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all cursor-pointer disabled:opacity-50"
-                                style={{ background: "linear-gradient(135deg, rgba(21,101,192,0.3), rgba(21,101,192,0.1))", color: "#64b5f6", border: "1px solid rgba(21,101,192,0.2)" }}
-                            >
-                                {processing === r.id + "complete" ? "Processing..." : "Mark Complete & Refund Issued"}
-                            </button>
-                        ) : (
-                            <>
-                                <button
-                                    onClick={onApprove}
-                                    disabled={!!processing}
-                                    className="px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all cursor-pointer disabled:opacity-50"
-                                    style={{ background: "linear-gradient(135deg, rgba(46,125,50,0.3), rgba(46,125,50,0.1))", color: "#81c784", border: "1px solid rgba(46,125,50,0.2)" }}
-                                >
-                                    {processing === r.id + "approve" ? "Approving..." : "Approve & Create Return"}
-                                </button>
-                                <button
-                                    onClick={onReject}
-                                    disabled={!!processing}
-                                    className="px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all cursor-pointer disabled:opacity-50"
-                                    style={{ background: "rgba(183,28,28,0.12)", color: "#ef5350", border: "1px solid rgba(183,28,28,0.15)" }}
-                                >
-                                    {processing === r.id + "reject" ? "Rejecting..." : "Reject"}
-                                </button>
-                            </>
-                        )}
-                    </div>
+            {/* Rejection reason */}
+            {r.rejectionReason && (
+                <div className="mb-4 p-3 rounded-xl" style={{ background: "rgba(183,28,28,0.08)", border: "1px solid rgba(183,28,28,0.15)" }}>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-1" style={{ color: "rgba(255,255,255,0.25)" }}>Rejection Reason</p>
+                    <p className="text-sm" style={{ color: "#ef5350" }}>{r.rejectionReason}</p>
                 </div>
             )}
+
+            {/* Admin note */}
+            {r.adminNote && (
+                <div className="mb-4 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-1" style={{ color: "rgba(255,255,255,0.25)" }}>Admin Note</p>
+                    <p className="text-sm" style={{ color: "rgba(255,255,255,0.7)" }}>{r.adminNote}</p>
+                </div>
+            )}
+
+            {/* Refund details */}
+            {r.status === "REFUND_PROCESSED" && (
+                <div className="mb-4 p-3 rounded-xl" style={{ background: "rgba(46,125,50,0.1)", border: "1px solid rgba(46,125,50,0.2)" }}>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-1" style={{ color: "rgba(255,255,255,0.25)" }}>Refund Details</p>
+                    <p className="text-sm font-bold" style={{ color: "#81c784" }}>₹{r.refundAmount.toLocaleString("en-IN")} processed</p>
+                    {r.razorpayRefundId && <p className="text-xs mt-0.5 font-mono" style={{ color: "rgba(255,255,255,0.45)" }}>ID: {r.razorpayRefundId}</p>}
+                    {r.refundProcessedAt && <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>{new Date(r.refundProcessedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}</p>}
+                </div>
+            )}
+
+            {/* Action slot */}
+            {!readonly && children}
         </div>
     );
 }

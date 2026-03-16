@@ -33,11 +33,22 @@ enum PaymentMethod {
   RAZORPAY
 }
 
+enum ReturnReason {
+  DAMAGED
+  WRONG_ITEM
+  QUALITY_ISSUE
+  CHANGED_MIND
+  OTHER
+}
+
 enum ReturnStatus {
   PENDING
   APPROVED
   REJECTED
   COMPLETED
+  RECEIVED
+  REFUND_PROCESSED
+  REFUND_FAILED
 }
 
 model User {
@@ -214,15 +225,27 @@ model DeliveryTracking {
 }
 
 model ReturnRequest {
-  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  orderId       String       @map("order_id") @db.Uuid
-  userId        String       @map("user_id") @db.Uuid
-  reason        String
-  status        ReturnStatus @default(PENDING)
-  adminNote     String?      @map("admin_note")
-  returnWaybill String?      @map("return_waybill")
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
+  id                  String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId             String       @map("order_id") @db.Uuid
+  userId              String       @map("user_id") @db.Uuid
+  returnReason        ReturnReason @default(OTHER) @map("return_reason")
+  reason              String
+  proofImages         Json         @default("[]") @map("proof_images")
+  refundAmount        Int          @default(0) @map("refund_amount")
+  deliveryCharges     Int          @default(0) @map("delivery_charges")
+  status              ReturnStatus @default(PENDING)
+  adminNote           String?      @map("admin_note")
+  rejectionReason     String?      @map("rejection_reason")
+  returnWaybill       String?      @map("return_waybill")
+  inspectionNotes     String?      @map("inspection_notes")
+  receivedAt          DateTime?    @map("received_at")
+  refundProcessedAt   DateTime?    @map("refund_processed_at")
+  refundProcessedBy   String?      @map("refund_processed_by")
+  razorpayRefundId    String?      @map("razorpay_refund_id")
+  refundStatus        String?      @map("refund_status")
+  refundFailureReason String?      @map("refund_failure_reason")
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -263,7 +263,65 @@ export async function sendOrderStatusEmail(
   return sendMail(to, `${info.subject} — ${orderNumber}`, html);
 }
 
-// ── 6. Return completed (refund issued) ───────────────────────────────────────
+// ── 6. Return request confirmation ────────────────────────────────────────────
+
+const RETURN_REASON_LABELS: Record<string, string> = {
+  DAMAGED: "Item Damaged",
+  WRONG_ITEM: "Wrong Item Received",
+  QUALITY_ISSUE: "Quality Issue",
+  CHANGED_MIND: "Changed Mind",
+  OTHER: "Other",
+};
+
+export async function sendReturnRequestConfirmationEmail(
+  to: string,
+  name: string,
+  orderNumber: string,
+  returnReason: string,
+  refundAmount: number,
+  deliveryCharges: number,
+) {
+  const firstName = name?.split(" ")[0] ?? "there";
+  const reasonLabel = RETURN_REASON_LABELS[returnReason] ?? returnReason;
+
+  const html = emailWrapper(`
+    <p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#c9a84c;">Return Request</p>
+    <h1 style="margin:0 0 20px;font-family:'Georgia',serif;font-size:28px;font-style:italic;color:#1a1a1a;font-weight:400;">Request Received</h1>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#4a4a4a;font-family:Arial,sans-serif;">
+      Hello ${firstName}, we've received your return request for order <strong>${orderNumber}</strong>. Our team will review it within 24–48 hours and notify you of the outcome.
+    </p>
+    <table cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 20px;">
+      <tr>
+        <td style="padding:16px 20px;background:#faf9f6;border-left:3px solid #c9a84c;border-radius:2px;">
+          <p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#999;">Return Reason</p>
+          <p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:13px;color:#1a1a1a;font-weight:600;">${reasonLabel}</p>
+          <p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#999;">Refund Breakdown</p>
+          <table cellpadding="0" cellspacing="0" style="width:100%;">
+            <tr>
+              <td style="padding:4px 0;font-family:Arial,sans-serif;font-size:13px;color:#4a4a4a;">Product Price</td>
+              <td style="padding:4px 0;font-family:Arial,sans-serif;font-size:13px;color:#1a1a1a;font-weight:600;text-align:right;">₹${refundAmount.toLocaleString("en-IN")}</td>
+            </tr>
+            <tr>
+              <td style="padding:4px 0;font-family:Arial,sans-serif;font-size:13px;color:#999;">Delivery Charges</td>
+              <td style="padding:4px 0;font-family:Arial,sans-serif;font-size:12px;color:#b71c1c;text-align:right;font-style:italic;">Non-refundable${deliveryCharges > 0 ? ` (₹${deliveryCharges.toLocaleString("en-IN")})` : ""}</td>
+            </tr>
+            <tr style="border-top:1px solid #e8e3db;">
+              <td style="padding:8px 0 0;font-family:Arial,sans-serif;font-size:14px;color:#1a1a1a;font-weight:700;">You will receive</td>
+              <td style="padding:8px 0 0;font-family:Arial,sans-serif;font-size:14px;color:#c9a84c;font-weight:700;text-align:right;">₹${refundAmount.toLocaleString("en-IN")}</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0 0 4px;font-size:13px;line-height:1.7;color:#888;font-family:Arial,sans-serif;">
+      Please do not ship the item until you receive our approval email with return instructions.
+    </p>
+    ${goldButton(`${APP_URL}/orders`, "View My Orders")}
+  `);
+  return sendMail(to, `Return request received — Order ${orderNumber}`, html);
+}
+
+// ── 6b. Return completed (legacy — kept for backward compat) ──────────────────
 
 export async function sendReturnCompletedEmail(to: string, name: string, orderNumber: string, adminNote: string) {
   const firstName = name?.split(" ")[0] ?? "there";
@@ -292,28 +350,118 @@ export async function sendReturnCompletedEmail(to: string, name: string, orderNu
 
 // ── 8. Return approved ────────────────────────────────────────────────────────
 
-export async function sendReturnApprovedEmail(to: string, name: string, orderNumber: string, returnWaybill: string) {
+export async function sendReturnApprovedEmail(
+  to: string, name: string, orderNumber: string, returnWaybill: string, refundAmount: number
+) {
   const firstName = name?.split(" ")[0] ?? "there";
   const html = emailWrapper(`
-    <p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#c9a84c;">Return Approved</p>
+    <p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#2e7d32;">Return Approved</p>
     <h1 style="margin:0 0 20px;font-family:'Georgia',serif;font-size:28px;font-style:italic;color:#1a1a1a;font-weight:400;">Your Return is Approved</h1>
     <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#4a4a4a;font-family:Arial,sans-serif;">
-      Hello ${firstName}, your return request for order <strong>${orderNumber}</strong> has been approved.
+      Hello ${firstName}, your return request for order <strong>${orderNumber}</strong> has been approved. Our courier will pick up the item from your address.
     </p>
     <table cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 20px;">
       <tr>
         <td style="padding:16px 20px;background:#faf9f6;border-left:3px solid #c9a84c;border-radius:2px;">
           <p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#999;">Return Waybill / Tracking</p>
-          <p style="margin:0;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#1a1a1a;">${returnWaybill}</p>
+          <p style="margin:0 0 14px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#1a1a1a;">${returnWaybill}</p>
+          <p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#999;">Refund Amount (after inspection)</p>
+          <p style="margin:0;font-family:Arial,sans-serif;font-size:15px;font-weight:700;color:#c9a84c;">₹${refundAmount.toLocaleString("en-IN")}</p>
         </td>
       </tr>
     </table>
-    <p style="margin:0 0 16px;font-size:14px;line-height:1.7;color:#4a4a4a;font-family:Arial,sans-serif;">
-      Our courier will schedule a pickup from your address. Please keep the item(s) securely packed and ready for pickup. You will receive a refund once we inspect the returned item(s).
+    <p style="margin:0 0 8px;font-size:14px;line-height:1.7;color:#4a4a4a;font-family:Arial,sans-serif;">
+      Please keep the item(s) securely packed and ready for pickup. Your refund will be processed within 5–7 business days of us receiving the item.
+    </p>
+    <p style="margin:0 0 16px;font-size:13px;line-height:1.7;color:#888;font-family:Arial,sans-serif;">
+      Note: Delivery charges are non-refundable. Only the product price will be refunded.
     </p>
     ${goldButton(`${APP_URL}/orders`, "View My Orders")}
   `);
   return sendMail(to, `Return approved — Order ${orderNumber}`, html);
+}
+
+// ── 10. Return received ───────────────────────────────────────────────────────
+
+export async function sendReturnReceivedEmail(
+  to: string, name: string, orderNumber: string, refundAmount: number
+) {
+  const firstName = name?.split(" ")[0] ?? "there";
+  const html = emailWrapper(`
+    <p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#1565c0;">Item Received</p>
+    <h1 style="margin:0 0 20px;font-family:'Georgia',serif;font-size:28px;font-style:italic;color:#1a1a1a;font-weight:400;">We've Received Your Return</h1>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#4a4a4a;font-family:Arial,sans-serif;">
+      Hello ${firstName}, we have received the returned item(s) for order <strong>${orderNumber}</strong> and are inspecting them.
+    </p>
+    <table cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 20px;">
+      <tr>
+        <td style="padding:16px 20px;background:#e3f2fd;border-left:3px solid #1565c0;border-radius:2px;">
+          <p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#999;">Refund Amount</p>
+          <p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#1a1a1a;">₹${refundAmount.toLocaleString("en-IN")}</p>
+          <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#4a4a4a;">Your refund will be processed within 48 hours.</p>
+        </td>
+      </tr>
+    </table>
+    ${goldButton(`${APP_URL}/orders`, "View My Orders")}
+  `);
+  return sendMail(to, `Return received — Refund processing soon — Order ${orderNumber}`, html);
+}
+
+// ── 11. Refund processed ──────────────────────────────────────────────────────
+
+export async function sendRefundProcessedEmail(
+  to: string,
+  name: string,
+  orderNumber: string,
+  refundAmount: number,
+  trackingNumber: string | null,
+  razorpayRefundId: string | null,
+) {
+  const firstName = name?.split(" ")[0] ?? "there";
+  const html = emailWrapper(`
+    <p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#2e7d32;">Refund Processed</p>
+    <h1 style="margin:0 0 20px;font-family:'Georgia',serif;font-size:28px;font-style:italic;color:#1a1a1a;font-weight:400;">Your Refund is On Its Way</h1>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#4a4a4a;font-family:Arial,sans-serif;">
+      Hello ${firstName}, your refund for order <strong>${orderNumber}</strong> has been successfully processed.
+    </p>
+    <table cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 20px;">
+      <tr>
+        <td style="padding:16px 20px;background:#e8f5e9;border-left:3px solid #2e7d32;border-radius:2px;">
+          <p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#999;">Amount Refunded</p>
+          <p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:22px;font-weight:700;color:#1b5e20;">₹${refundAmount.toLocaleString("en-IN")}</p>
+          ${razorpayRefundId ? `
+          <p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#999;">Refund Reference ID</p>
+          <p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:13px;font-weight:600;color:#1a1a1a;">${razorpayRefundId}</p>` : ""}
+          <p style="margin:0;font-family:Arial,sans-serif;font-size:13px;color:#4a4a4a;">The amount will reflect in your original payment method within 2–5 business days.</p>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0 0 16px;font-size:13px;line-height:1.7;color:#888;font-family:Arial,sans-serif;">
+      Note: Delivery charges were non-refundable and have not been included in this refund.
+    </p>
+    ${goldButton(`${APP_URL}/orders`, "View My Orders")}
+  `);
+  return sendMail(to, `Refund of ₹${refundAmount.toLocaleString("en-IN")} processed — Order ${orderNumber}`, html);
+}
+
+// ── 12. Refund failed ─────────────────────────────────────────────────────────
+
+export async function sendRefundFailedEmail(
+  to: string, name: string, orderNumber: string, refundAmount: number
+) {
+  const firstName = name?.split(" ")[0] ?? "there";
+  const html = emailWrapper(`
+    <p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#b71c1c;">Refund Issue</p>
+    <h1 style="margin:0 0 20px;font-family:'Georgia',serif;font-size:28px;font-style:italic;color:#1a1a1a;font-weight:400;">Refund Could Not Be Processed</h1>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#4a4a4a;font-family:Arial,sans-serif;">
+      Hello ${firstName}, we encountered an issue processing your refund of <strong>₹${refundAmount.toLocaleString("en-IN")}</strong> for order <strong>${orderNumber}</strong>.
+    </p>
+    <p style="margin:0 0 16px;font-size:14px;line-height:1.7;color:#4a4a4a;font-family:Arial,sans-serif;">
+      Our team has been notified and will resolve this manually. You can expect to hear from us within 24 hours. We apologise for the inconvenience.
+    </p>
+    ${goldButton(`${APP_URL}/orders`, "View My Orders")}
+  `);
+  return sendMail(to, `Refund issue — Order ${orderNumber}`, html);
 }
 
 // ── 9. Return rejected ────────────────────────────────────────────────────────

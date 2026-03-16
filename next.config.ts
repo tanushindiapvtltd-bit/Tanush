@@ -22,6 +22,7 @@ const CSP = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   images: {
     remotePatterns: [
       {
