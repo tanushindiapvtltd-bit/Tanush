@@ -429,7 +429,7 @@ export async function createReverseShipment(p: {
                     name:  sanitize(item.name),
                     units: item.quantity,
                     price: item.price,
-                    url:   item.url ?? "",
+                    url:   "https://res.cloudinary.com/dvtchwztz/image/upload/v1773815324/tanush/products/ed8nunfzq6pnilseervj.png",
                 })),
             },
         ],
