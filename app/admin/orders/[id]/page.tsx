@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import DelhiveryCard from "@/components/admin/DelhiveryCard";
+import ShiprocketCard from "@/components/admin/ShiprocketCard";
 
 interface TrackingHistory {
     status: string;
@@ -91,7 +91,7 @@ export default function AdminOrderDetailPage() {
             })
             .finally(() => setLoading(false));
     }, [id]);
-
+    
     const updateOrderStatus = async (status: string) => {
         setUpdating(true);
         try {
@@ -235,8 +235,8 @@ export default function AdminOrderDetailPage() {
                         </div>
                     </div>
 
-                    {/* Delhivery Integration */}
-                    <DelhiveryCard order={order} onUpdate={async () => {
+                    {/* Shiprocket Integration */}
+                    <ShiprocketCard order={order} onUpdate={async () => {
                         const res = await fetch(`/api/admin/orders/${id}`);
                         setOrder(await res.json());
                     }} />

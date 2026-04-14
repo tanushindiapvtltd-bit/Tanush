@@ -19,10 +19,11 @@ export async function POST(
 
     const { id: orderId } = await params;
     const body = await req.json();
-    const { returnReason, description, proofImages } = body as {
+    const { returnReason, description, proofImages, upiId } = body as {
         returnReason: ReturnReason;
         description: string;
         proofImages: string[];
+        upiId?: string;
     };
 
     if (!returnReason || !VALID_REASONS.includes(returnReason)) {
@@ -30,6 +31,9 @@ export async function POST(
     }
     if (!description?.trim()) {
         return NextResponse.json({ error: "Description is required" }, { status: 400 });
+    }
+    if (!upiId?.trim()) {
+        return NextResponse.json({ error: "UPI ID is required for refund" }, { status: 400 });
     }
 
     const order = await prisma.order.findFirst({
@@ -58,8 +62,8 @@ export async function POST(
         return NextResponse.json({ error: "A return request already exists for this order" }, { status: 400 });
     }
 
-    // Calculate refund amount: subtotal + tax (delivery charges excluded)
-    const refundAmount = order.subtotal + order.tax;
+    // Refund product price only (no tax, no delivery charges)
+    const refundAmount = order.subtotal;
     const deliveryCharges = order.shippingCost;
 
     const images = Array.isArray(proofImages) ? proofImages.slice(0, 5) : [];
@@ -73,6 +77,7 @@ export async function POST(
             proofImages: images,
             refundAmount,
             deliveryCharges,
+            upiId: upiId!.trim(),
         },
     });
 

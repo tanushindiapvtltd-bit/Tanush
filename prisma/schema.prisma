@@ -244,6 +244,7 @@ model ReturnRequest {
   razorpayRefundId    String?      @map("razorpay_refund_id")
   refundStatus        String?      @map("refund_status")
   refundFailureReason String?      @map("refund_failure_reason")
+  upiId               String?      @map("upi_id")
   createdAt           DateTime     @default(now()) @map("created_at")
   updatedAt           DateTime     @updatedAt @map("updated_at")
 

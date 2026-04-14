@@ -105,6 +105,7 @@ export default function OrderDetailPage() {
     const [cancelError, setCancelError] = useState("");
     const [returnReason, setReturnReason] = useState<string>("");
     const [returnDescription, setReturnDescription] = useState("");
+    const [returnUpiId, setReturnUpiId] = useState("");
     const [proofImages, setProofImages] = useState<string[]>([]);
     const [uploadingProof, setUploadingProof] = useState(false);
     const [returnSubmitting, setReturnSubmitting] = useState(false);
@@ -168,14 +169,14 @@ export default function OrderDetailPage() {
     };
 
     const handleReturnRequest = async () => {
-        if (!order || !returnReason || !returnDescription.trim()) return;
+        if (!order || !returnReason || !returnDescription.trim() || !returnUpiId.trim()) return;
         setReturnSubmitting(true);
         setReturnError("");
         try {
             const res = await fetch(`/api/orders/${order.id}/return`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ returnReason, description: returnDescription.trim(), proofImages }),
+                body: JSON.stringify({ returnReason, description: returnDescription.trim(), proofImages, upiId: returnUpiId.trim() }),
             });
             const data = await res.json();
             if (!res.ok) { setReturnError(data.error ?? "Failed to submit return request"); return; }
@@ -651,6 +652,20 @@ export default function OrderDetailPage() {
                                                 />
                                             </div>
 
+                                            {/* UPI ID for refund */}
+                                            <div className="mb-3">
+                                                <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#888" }}>UPI Address *</label>
+                                                <input
+                                                    type="text"
+                                                    value={returnUpiId}
+                                                    onChange={(e) => setReturnUpiId(e.target.value)}
+                                                    placeholder="e.g. yourname@upi"
+                                                    className="w-full rounded-lg px-4 py-3 text-sm outline-none"
+                                                    style={{ border: "1px solid #e0d5c5", background: "#fff", color: "#1a1a1a" }}
+                                                />
+                                                <p className="text-[11px] mt-1" style={{ color: "#bbb" }}>Refund will be transferred to this UPI ID once the return is processed.</p>
+                                            </div>
+
                                             {/* Proof images */}
                                             <div className="mb-4">
                                                 <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "#888" }}>Proof Images (optional, up to 5)</label>
@@ -681,7 +696,7 @@ export default function OrderDetailPage() {
                                             )}
                                             <button
                                                 onClick={handleReturnRequest}
-                                                disabled={returnSubmitting || !returnReason || !returnDescription.trim()}
+                                                disabled={returnSubmitting || !returnReason || !returnDescription.trim() || !returnUpiId.trim()}
                                                 className="px-5 py-2.5 rounded-lg text-sm font-bold uppercase tracking-widest text-white transition-opacity hover:opacity-90 cursor-pointer disabled:opacity-50"
                                                 style={{ background: "#1a1a1a" }}
                                             >

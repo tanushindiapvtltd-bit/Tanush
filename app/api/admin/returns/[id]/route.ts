@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { createReverseShipment } from "@/lib/delhivery";
+import { createReturnWithQC } from "@/lib/shiprocket";
 import {
     sendReturnApprovedEmail,
     sendReturnRejectedEmail,
@@ -60,27 +60,30 @@ export async function PATCH(
 
         let returnWaybill = "";
         try {
-            const result = await createReverseShipment({
-                orderNumber: order.orderNumber,
+            const result = await createReturnWithQC({
+                referenceOrderId: order.orderNumber,
                 customerName: order.shippingName,
                 customerPhone: order.shippingPhone ?? "9999999999",
+                customerEmail: order.shippingEmail ?? "",
                 customerAddress: [order.shippingAddress, order.shippingApartment].filter(Boolean).join(", "),
-                customerPin: order.shippingZip,
                 customerCity: order.shippingCity,
                 customerState: order.shippingState,
-                quantity: order.items.reduce((s, i) => s + i.quantity, 0),
+                customerPincode: order.shippingZip,
                 weight: 500,
-                totalAmount: order.total,
-                // items include Cloudinary image URLs so Delhivery agent can verify returned products
+                subTotal: order.total,
+                returnReason: returnRequest.returnReason,
+                upiId: returnRequest.upiId ?? undefined,
+                // Items include Cloudinary image URLs for QC verification by pickup agent
                 items: order.items.map((i) => ({
                     name: i.productName,
                     sku: i.sku ?? i.productName,
-                    price: i.price,
-                    quantity: i.quantity,
-                    url: i.productImage ?? "",
+                    units: i.quantity,
+                    sellingPrice: i.price,
+                    imageUrl: i.productImage ?? undefined,
                 })),
             });
-            returnWaybill = result.waybill;
+            // Use AWB if auto-assigned, otherwise use SR order ID as reference
+            returnWaybill = result.awb ?? String(result.srOrderId);
         } catch (e) {
             return NextResponse.json(
                 { error: `Failed to create return shipment: ${e instanceof Error ? e.message : String(e)}` },
