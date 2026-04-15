@@ -39,7 +39,6 @@ async function fetchNewToken(): Promise<string> {
     _tokenExpiresAt = Date.now() + 23 * 60 * 60 * 1000; // 23h (tokens are valid 24h)
     return _token;
 }
-
 async function getToken(): Promise<string> {
     // Return cached token if still valid
     if (_token && Date.now() < _tokenExpiresAt) return _token;

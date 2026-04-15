@@ -137,13 +137,13 @@ export default function Footer() {
                     {/* Right: Social icons */}
                     <div className="flex items-center gap-5">
                         {/* Facebook */}
-                        <Link href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-[#4a4a4a] hover:text-[#C9A84C] transition-colors" aria-label="Facebook">
+                        <Link href="https://www.facebook.com/profile.php?id=61568064050281" target="_blank" rel="noopener noreferrer" className="text-[#4a4a4a] hover:text-[#C9A84C] transition-colors" aria-label="Facebook">
                             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" />
                             </svg>
                         </Link>
                         {/* Instagram */}
-                        <Link href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-[#4a4a4a] hover:text-[#C9A84C] transition-colors" aria-label="Instagram">
+                        <Link href="https://www.instagram.com/tanush.india/" target="_blank" rel="noopener noreferrer" className="text-[#4a4a4a] hover:text-[#C9A84C] transition-colors" aria-label="Instagram">
                             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                                 <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
                                 <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />

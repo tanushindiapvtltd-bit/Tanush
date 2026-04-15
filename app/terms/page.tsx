@@ -3,56 +3,67 @@ import Footer from "@/components/layout/Footer";
 
 const sections = [
   {
-    title: "Acceptance of Terms",
-    content: `By accessing or using tanush.in, you confirm that you are at least 18 years of age (or have the consent of a parent or guardian) and agree to be bound by these Terms of Service, our Privacy Policy, and any applicable laws and regulations. If you do not agree to these terms, please do not use our website.`,
+    title: "Introduction",
+    content: `Welcome to Tanush. By accessing or using our website, you agree to be bound by these Terms & Conditions. Please read them carefully before making any purchase.`,
   },
   {
-    title: "Products and Pricing",
-    content: `All products listed on tanush.in are subject to availability. Prices are displayed in Indian Rupees (₹) and include applicable GST. We reserve the right to modify prices at any time without prior notice. In the event of a pricing error, we reserve the right to cancel the affected order and issue a full refund.`,
+    title: "Products",
+    content: `We specialize in selling fashion accessories including bangles, bracelets, and related jewelry items.
+- All products are subject to availability.
+- We reserve the right to discontinue any product at any time without notice.
+- Product images are for illustration purposes; actual product color/design may vary slightly.`,
   },
   {
-    title: "Orders and Contract",
-    content: `Placing an order on tanush.in constitutes an offer to purchase. A legally binding contract is formed only when we send you a shipping confirmation email. We reserve the right to refuse or cancel orders at our discretion — for example, in cases of suspected fraud, inaccurate product information, or stock unavailability.`,
+    title: "Pricing & Payments",
+    content: `- All prices are listed in INR (₹) and may include applicable taxes unless stated otherwise.
+- We reserve the right to change prices at any time without prior notice.
+- Payments must be made through approved payment methods available on the website.`,
   },
   {
-    title: "Payment",
-    content: `We accept payments via Razorpay (credit/debit cards, UPI, net banking, and wallets) and Cash on Delivery for eligible orders. All online payments are processed securely. Tanush does not store your payment card details.`,
+    title: "Orders & Confirmation",
+    content: `- Once an order is placed, you will receive an order confirmation via email/SMS.
+- We reserve the right to cancel or refuse any order due to product unavailability, payment issues, or suspected fraudulent activity.`,
   },
   {
-    title: "Shipping and Delivery",
-    content: `Please refer to our Shipping & Returns page for detailed information on delivery timelines, costs, and regions. Delivery timeframes are estimates and not guarantees. Tanush is not responsible for delays caused by third-party logistics providers, customs, or events beyond our control.`,
+    title: "Shipping & Delivery",
+    content: `- Orders are processed and shipped within 3 working days.
+- Delivery timelines may vary depending on location and courier services.
+- We are not responsible for delays caused by external logistics partners.`,
   },
   {
-    title: "Returns and Refunds",
-    content: `Our returns and refund policy is detailed on our Shipping & Returns page and forms part of these Terms of Service. By placing an order, you agree to the terms set out in that policy.`,
+    title: "Returns & Exchanges",
+    content: `- Returns or exchanges are accepted within 3 days of delivery.
+- Products must be unused, in original packaging, and in resalable condition.
+- Items that are damaged due to misuse or wear and tear are not eligible.
+- Refunds will be processed within 7 working days after product inspection and approval.`,
   },
   {
     title: "Intellectual Property",
-    content: `All content on tanush.in — including text, images, logos, product designs, and graphics — is the intellectual property of Tanush and is protected under applicable copyright and trademark law. You may not reproduce, distribute, or use any content from this site without our prior written consent.`,
+    content: `All content on this website is the property of Tanush and is protected by applicable laws.`,
   },
   {
-    title: "User Accounts",
-    content: `You are responsible for maintaining the confidentiality of your account credentials and for all activity that occurs under your account. Please notify us immediately at support@tanush.in if you suspect any unauthorised use of your account. We reserve the right to suspend or terminate accounts that violate these terms.`,
-  },
-  {
-    title: "Product Reviews",
-    content: `By submitting a review on tanush.in, you grant us a non-exclusive, royalty-free licence to use, publish, and display your review on our website and marketing materials. Reviews must be genuine and based on your personal experience. We reserve the right to remove reviews that contain offensive content or violate our guidelines.`,
+    title: "User Responsibilities",
+    content: `Users agree not to misuse the website and provide accurate information.`,
   },
   {
     title: "Limitation of Liability",
-    content: `To the fullest extent permitted by law, Tanush shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of our website or products. Our total liability for any claim arising out of or related to a purchase shall not exceed the amount paid for the relevant product.`,
+    content: `Tanush shall not be liable for indirect damages or misuse of products.`,
+  },
+  {
+    title: "Privacy Policy",
+    content: `Your use of this website is also governed by our Privacy Policy.`,
   },
   {
     title: "Governing Law",
-    content: `These Terms of Service are governed by and construed in accordance with the laws of India. Any disputes arising under these terms shall be subject to the exclusive jurisdiction of the courts of Mathura, Uttar Pradesh, India.`,
+    content: `These Terms shall be governed by the laws of India. Jurisdiction: Firozabad, Uttar Pradesh.`,
   },
   {
-    title: "Changes to These Terms",
-    content: `We reserve the right to update these Terms of Service at any time. Changes will be posted on this page with an updated date. Continued use of our website following any changes constitutes your acceptance of the revised terms.`,
+    title: "Changes to Terms",
+    content: `We reserve the right to update these terms at any time.`,
   },
   {
-    title: "Contact",
-    content: `For questions regarding these Terms of Service, please contact us at:\n\nTanush Fine Jewellery\n64 Sheikh Latif Sunrise Plaza, Sadar Bazar, Mathura, Uttar Pradesh — 283203\nEmail: support@tanush.in\nPhone: 7252866387`,
+    title: "Contact Us",
+    content: `Email: Tanush.india.pvtltd@gmail.com\nPhone: 9407459668\n\nBy using our website, you agree to these Terms & Conditions.`,
   },
 ];
 
