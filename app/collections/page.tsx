@@ -27,6 +27,8 @@ interface Product {
     mainImage: string;
     inStock: boolean;
     colors: ColorVariant[];
+    avgRating: number;
+    reviewCount: number;
 }
 
 const categories = [
@@ -129,7 +131,8 @@ function ProductCard({ product }: { product: Product }) {
     const [hovered, setHovered] = useState(false);
 
     const originalPrice = Math.round(product.priceNum * 1.15);
-    const rating = 4.2 + (product.id % 8) * 0.1;
+    const rating = product.avgRating;
+    const reviewCount = product.reviewCount;
     const inWishlist = isInWishlist(product.id);
 
     const handleAddToCart = (e: React.MouseEvent) => {
@@ -185,7 +188,7 @@ function ProductCard({ product }: { product: Product }) {
             <div className="p-4">
                 <div className="flex items-center gap-2 mb-2">
                     <Stars rating={rating} size={11} />
-                    <span className="text-[10px]" style={{ color: "#aaa" }}>({Math.floor(rating * 10)})</span>
+                    <span className="text-[10px]" style={{ color: "#aaa" }}>({reviewCount})</span>
                 </div>
                 <Link href={`/collections/${product.id}`} className="no-underline">
                     <h3 className="text-[15px] mb-1.5 leading-snug line-clamp-2 hover:text-[#c9a84c] transition-colors"

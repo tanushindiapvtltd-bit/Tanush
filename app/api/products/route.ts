@@ -10,7 +10,14 @@ export async function GET(req: NextRequest) {
     const products = await prisma.product.findMany({
         where,
         orderBy: { id: "asc" },
+        include: { reviews: { select: { rating: true } } },
     });
 
-    return NextResponse.json(products);
+    const result = products.map(({ reviews, ...p }) => {
+        const count = reviews.length;
+        const avg = count > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / count : 0;
+        return { ...p, avgRating: Math.round(avg * 10) / 10, reviewCount: count };
+    });
+
+    return NextResponse.json(result);
 }
