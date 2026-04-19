@@ -19,7 +19,21 @@ interface WishlistProduct {
         priceNum: number;
         category: string;
         mainImage: string;
+        reviews: { rating: number }[];
     };
+}
+
+function Stars({ rating }: { rating: number }) {
+    return (
+        <div className="flex items-center gap-0.5">
+            {[1, 2, 3, 4, 5].map((s) => (
+                <svg key={s} width={11} height={11} viewBox="0 0 24 24"
+                    fill={s <= Math.round(rating) ? "#c9a84c" : "none"} stroke="#c9a84c" strokeWidth={1.5}>
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+            ))}
+        </div>
+    );
 }
 
 export default function WishlistPage() {
@@ -131,6 +145,16 @@ export default function WishlistPage() {
                                     <p className="text-sm font-semibold leading-snug" style={{ color: "#1a1a1a" }}>
                                         {item.product.name}
                                     </p>
+                                    {(() => {
+                                        const count = item.product.reviews.length;
+                                        const avg = count > 0 ? item.product.reviews.reduce((s, r) => s + r.rating, 0) / count : 0;
+                                        return (
+                                            <div className="flex items-center gap-1.5 mt-1">
+                                                <Stars rating={avg} />
+                                                <span className="text-[10px]" style={{ color: "#aaa" }}>({count})</span>
+                                            </div>
+                                        );
+                                    })()}
                                     <p className="text-sm font-bold mt-1" style={{ color: "#c9a84c" }}>
                                         {item.product.price}
                                     </p>

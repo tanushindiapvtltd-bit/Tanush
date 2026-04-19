@@ -11,7 +11,7 @@ export async function GET() {
 
     const items = await prisma.wishlistItem.findMany({
         where: { userId: session.user.id },
-        include: { product: true },
+        include: { product: { include: { reviews: { select: { rating: true } } } } },
         orderBy: { createdAt: "desc" },
     });
 
