@@ -74,9 +74,9 @@ export default function Footer() {
                                 Sunrise Plaza
                             </p>
                             <p className="leading-relaxed">
-                                64 Sheikh Latif Sunrise Plaza,
+                                Sunrise Plaza,
                                 <br />
-                                Sadar Bazar, Mathura,
+                                Sadar Bazar, Firozabad,
                                 <br />
                                 Uttar Pradesh — 283203
                             </p>

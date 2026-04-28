@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { useCart } from "@/lib/cartContext";
@@ -127,6 +127,7 @@ function ProductCard({ product }: { product: Product }) {
     const { addItem } = useCart();
     const { isInWishlist, toggle: toggleWishlist } = useWishlist();
     const { showToast } = useToast();
+    const router = useRouter();
     const [added, setAdded] = useState(false);
     const [hovered, setHovered] = useState(false);
 
@@ -140,8 +141,8 @@ function ProductCard({ product }: { product: Product }) {
         e.stopPropagation();
         addItem({ id: product.id, name: product.name, price: product.price, priceNum: product.priceNum, image: product.mainImage, subtitle: product.category });
         setAdded(true);
-        setTimeout(() => setAdded(false), 1500);
         showToast({ type: "cart", message: "Added to Cart", subMessage: product.name });
+        router.push("/cart");
     };
 
     const handleWishlist = (e: React.MouseEvent) => {

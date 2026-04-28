@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { useCart } from "@/lib/cartContext";
@@ -42,6 +43,7 @@ export default function WishlistPage() {
     const { addItem } = useCart();
     const { toggle } = useWishlist();
     const { showToast } = useToast();
+    const router = useRouter();
 
     const fetchWishlist = async () => {
         setLoading(true);
@@ -74,6 +76,7 @@ export default function WishlistPage() {
             subtitle: item.product.category,
         });
         showToast({ type: "cart", message: "Added to Cart", subMessage: item.product.name });
+        router.push("/cart");
     };
 
     return (

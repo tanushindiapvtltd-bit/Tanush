@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cartContext";
 import { useWishlist } from "@/lib/wishlistContext";
 import { useToast } from "@/lib/toastContext";
@@ -63,6 +64,7 @@ function ProductCard({ product }: { product: Product }) {
     const { addItem } = useCart();
     const { isInWishlist, toggle } = useWishlist();
     const { showToast } = useToast();
+    const router = useRouter();
     const wishlisted = isInWishlist(product.id);
 
     function handleAddToCart(e: React.MouseEvent) {
@@ -77,6 +79,7 @@ function ProductCard({ product }: { product: Product }) {
             subtitle: product.category,
         });
         showToast({ type: "cart", message: "Added to Cart", subMessage: product.name });
+        router.push("/cart");
     }
 
     function handleToggleWishlist(e: React.MouseEvent) {
