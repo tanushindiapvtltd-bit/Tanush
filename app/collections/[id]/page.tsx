@@ -32,6 +32,7 @@ interface Product {
     inStock: boolean;
     colors: ColorVariant[];
     sku: string;
+    gstRate: number;
 }
 
 interface Review {
