@@ -16,6 +16,7 @@ interface Product {
     mainImage: string;
     avgRating: number;
     reviewCount: number;
+    gstRate: number;
 }
 
 interface ProductCardsSectionProps {
@@ -77,6 +78,7 @@ function ProductCard({ product }: { product: Product }) {
             priceNum: product.priceNum,
             image: product.mainImage,
             subtitle: product.category,
+            gstRate: product.gstRate,
         });
         showToast({ type: "cart", message: "Added to Cart", subMessage: product.name });
         router.push("/cart");

@@ -29,6 +29,7 @@ interface Product {
     colors: ColorVariant[];
     avgRating: number;
     reviewCount: number;
+    gstRate: number;
 }
 
 const categories = [
@@ -139,7 +140,7 @@ function ProductCard({ product }: { product: Product }) {
     const handleAddToCart = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        addItem({ id: product.id, name: product.name, price: product.price, priceNum: product.priceNum, image: product.mainImage, subtitle: product.category });
+        addItem({ id: product.id, name: product.name, price: product.price, priceNum: product.priceNum, image: product.mainImage, subtitle: product.category, gstRate: product.gstRate });
         setAdded(true);
         showToast({ type: "cart", message: "Added to Cart", subMessage: product.name });
         router.push("/cart");

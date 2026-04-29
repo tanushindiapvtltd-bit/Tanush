@@ -371,7 +371,7 @@ export default function ProductDetailPage() {
                             {/* Add to Cart */}
                             <button
                                 onClick={() => {
-                                    addItem({ id: product.id, name: product.name, price: product.price, priceNum: product.priceNum, image: product.mainImage, subtitle: product.category, size: selectedSize || undefined, color: selectedColor?.name || undefined, sku: product.sku || undefined });
+                                    addItem({ id: product.id, name: product.name, price: product.price, priceNum: product.priceNum, image: product.mainImage, subtitle: product.category, size: selectedSize || undefined, color: selectedColor?.name || undefined, sku: product.sku || undefined, gstRate: product.gstRate ?? 0 });
                                     showToast({ type: "cart", message: "Added to Bag", subMessage: product.name });
                                     setAdded(true);
                                     setTimeout(() => router.push("/cart"), 800);

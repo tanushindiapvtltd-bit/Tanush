@@ -8,15 +8,13 @@ import Footer from "@/components/layout/Footer";
 import { useCart } from "@/lib/cartContext";
 import { useToast } from "@/lib/toastContext";
 
-const TAX_RATE = 0.03; // 3% (matches checkout)
-
 interface SuggestedProduct { id: number; name: string; price: string; mainImage: string; }
 
 export default function CartPage() {
     const { items, removeItem, updateQty, subtotal } = useCart();
     const { showToast } = useToast();
     const shipping = 0; // complimentary
-    const tax = Math.round(subtotal * TAX_RATE);
+    const tax = Math.round(items.reduce((sum, i) => sum + i.priceNum * i.quantity * ((i.gstRate ?? 0) / 100), 0));
     const total = subtotal + tax;
 
     const [suggestions, setSuggestions] = useState<SuggestedProduct[]>([]);
@@ -104,7 +102,7 @@ export default function CartPage() {
                                         value="COMPLIMENTARY"
                                         valueStyle={{ color: "#c8a045", fontWeight: 700, fontSize: "0.7rem", letterSpacing: "0.08em" }}
                                     />
-                                    <SummaryRow label="Tax (3%)" value={`₹${tax.toLocaleString("en-IN")}`} />
+                                    <SummaryRow label="Tax" value={tax > 0 ? `₹${tax.toLocaleString("en-IN")}` : "—"} />
                                 </div>
 
                                 <div

@@ -15,6 +15,7 @@ export default async function HomePage() {
       priceNum: true,
       category: true,
       mainImage: true,
+      gstRate: true,
       reviews: {
         select: { rating: true },
       },
@@ -35,6 +36,7 @@ export default async function HomePage() {
       priceNum: p.priceNum,
       category: p.category,
       mainImage: p.mainImage,
+      gstRate: p.gstRate,
       avgRating: Math.round(avg * 10) / 10,
       reviewCount: count,
     };

@@ -90,7 +90,7 @@ export default function CheckoutPage() {
     const shipping = subtotal > 499
         ? (paymentMethod === "COD" ? 50 : 0)
         : (paymentMethod === "COD" ? 150 : 100);
-    const tax = Math.round(subtotal * 0.03);
+    const tax = Math.round(items.reduce((sum, i) => sum + i.priceNum * i.quantity * ((i.gstRate ?? 0) / 100), 0));
     const total = subtotal + shipping + tax;
 
     const getFormData = () => ({
@@ -481,7 +481,7 @@ export default function CheckoutPage() {
                             <div className="flex flex-col gap-2.5 pt-4 mb-5" style={{ borderTop: "1px solid #f0e6d0" }}>
                                 <SummaryRow label="Subtotal" value={`₹${subtotal.toLocaleString("en-IN")}`} />
                                 <SummaryRow label="Shipping" value={`₹${shipping.toLocaleString("en-IN")}`} />
-                                <SummaryRow label="Taxes (3%)" value={`₹${tax.toLocaleString("en-IN")}`} />
+                                <SummaryRow label="Taxes" value={tax > 0 ? `₹${tax.toLocaleString("en-IN")}` : "—"} />
                             </div>
 
                             <div className="flex justify-between items-center pt-4 mb-6" style={{ borderTop: "1px solid #f0e6d0" }}>

@@ -22,6 +22,7 @@ export interface CartItem {
     size?: string;
     color?: string;
     sku?: string;
+    gstRate?: number;
 }
 
 interface CartContextType {
@@ -76,7 +77,8 @@ function readCart(key: string): CartItem[] {
                 typeof (item as CartItem).subtitle === "string" &&
                 ((item as CartItem).size === undefined || typeof (item as CartItem).size === "string") &&
                 ((item as CartItem).color === undefined || typeof (item as CartItem).color === "string") &&
-                ((item as CartItem).sku === undefined || typeof (item as CartItem).sku === "string")
+                ((item as CartItem).sku === undefined || typeof (item as CartItem).sku === "string") &&
+                ((item as CartItem).gstRate === undefined || typeof (item as CartItem).gstRate === "number")
         );
     } catch {
         return [];

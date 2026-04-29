@@ -20,6 +20,7 @@ interface WishlistProduct {
         priceNum: number;
         category: string;
         mainImage: string;
+        gstRate: number;
         reviews: { rating: number }[];
     };
 }
@@ -74,6 +75,7 @@ export default function WishlistPage() {
             priceNum: item.product.priceNum,
             image: item.product.mainImage,
             subtitle: item.product.category,
+            gstRate: item.product.gstRate,
         });
         showToast({ type: "cart", message: "Added to Cart", subMessage: item.product.name });
         router.push("/cart");
