@@ -3,10 +3,8 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { useCart } from "@/lib/cartContext";
 import { useWishlist } from "@/lib/wishlistContext";
 import { useToast } from "@/lib/toastContext";
 
@@ -41,10 +39,8 @@ function Stars({ rating }: { rating: number }) {
 export default function WishlistPage() {
     const [items, setItems] = useState<WishlistProduct[]>([]);
     const [loading, setLoading] = useState(true);
-    const { addItem } = useCart();
     const { toggle } = useWishlist();
     const { showToast } = useToast();
-    const router = useRouter();
 
     const fetchWishlist = async () => {
         setLoading(true);
@@ -65,20 +61,6 @@ export default function WishlistPage() {
         await toggle(productId);
         setItems((prev) => prev.filter((i) => i.productId !== productId));
         showToast({ type: "wishlist-remove", message: "Removed from Wishlist", subMessage: productName });
-    };
-
-    const handleAddToCart = (item: WishlistProduct) => {
-        addItem({
-            id: item.product.id,
-            name: item.product.name,
-            price: item.product.price,
-            priceNum: item.product.priceNum,
-            image: item.product.mainImage,
-            subtitle: item.product.category,
-            gstRate: item.product.gstRate,
-        });
-        showToast({ type: "cart", message: "Added to Cart", subMessage: item.product.name });
-        router.push("/cart");
     };
 
     return (
@@ -165,13 +147,13 @@ export default function WishlistPage() {
                                     </p>
                                 </Link>
 
-                                <button
-                                    onClick={() => handleAddToCart(item)}
-                                    className="w-full mt-3 py-2.5 text-xs font-bold uppercase tracking-widest rounded-lg transition-all hover:opacity-90 cursor-pointer"
-                                    style={{ background: "#1a1a1a", color: "#fff" }}
+                                <Link
+                                    href={`/collections/${item.product.id}`}
+                                    className="block w-full mt-3 py-2.5 text-xs font-bold uppercase tracking-widest rounded-lg transition-all hover:opacity-90 no-underline text-center"
+                                    style={{ background: "#c9a84c", color: "#fff" }}
                                 >
-                                    Add to Cart
-                                </button>
+                                    View
+                                </Link>
                             </div>
                         ))}
                     </div>

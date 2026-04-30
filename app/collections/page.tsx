@@ -3,10 +3,9 @@
 import { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { useCart } from "@/lib/cartContext";
 import { useWishlist } from "@/lib/wishlistContext";
 import { useToast } from "@/lib/toastContext";
 
@@ -125,26 +124,14 @@ function CollectionsContent() {
 }
 
 function ProductCard({ product }: { product: Product }) {
-    const { addItem } = useCart();
     const { isInWishlist, toggle: toggleWishlist } = useWishlist();
     const { showToast } = useToast();
-    const router = useRouter();
-    const [added, setAdded] = useState(false);
     const [hovered, setHovered] = useState(false);
 
     const originalPrice = Math.round(product.priceNum * 1.15);
     const rating = product.avgRating;
     const reviewCount = product.reviewCount;
     const inWishlist = isInWishlist(product.id);
-
-    const handleAddToCart = (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        addItem({ id: product.id, name: product.name, price: product.price, priceNum: product.priceNum, image: product.mainImage, subtitle: product.category, gstRate: product.gstRate });
-        setAdded(true);
-        showToast({ type: "cart", message: "Added to Cart", subMessage: product.name });
-        router.push("/cart");
-    };
 
     const handleWishlist = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -220,18 +207,11 @@ function ProductCard({ product }: { product: Product }) {
                     </div>
                 )}
 
-                <div className="flex items-center gap-2">
-                    <button onClick={handleAddToCart} disabled={!product.inStock}
-                        className="flex-1 py-2.5 rounded-md text-[10px] font-bold uppercase tracking-[0.14em] flex items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer disabled:opacity-50"
-                        style={{ background: added ? "#5a8a5a" : "#c9a84c", color: "#fff" }}>
-                        {added ? "✓ Added" : (<><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2}><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>Add to Cart</>)}
-                    </button>
-                    <Link href={`/collections/${product.id}`}
-                        className="py-2.5 px-4 rounded-md text-[10px] font-bold uppercase tracking-[0.14em] transition-all duration-200 no-underline text-center"
-                        style={{ background: "#fff", color: "#c9a84c", border: "1px solid #c9a84c" }}>
-                        View
-                    </Link>
-                </div>
+                <Link href={`/collections/${product.id}`}
+                    className="block w-full py-2.5 rounded-md text-[10px] font-bold uppercase tracking-[0.14em] transition-all duration-200 no-underline text-center"
+                    style={{ background: "#c9a84c", color: "#fff" }}>
+                    View
+                </Link>
             </div>
         </div>
     );

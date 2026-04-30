@@ -2,8 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useCart } from "@/lib/cartContext";
 import { useWishlist } from "@/lib/wishlistContext";
 import { useToast } from "@/lib/toastContext";
 
@@ -62,27 +60,9 @@ function StarRating({ rating, count }: { rating: number; count: number }) {
 
 /* ── Product Card ──────────────────────────────────────────────────────── */
 function ProductCard({ product }: { product: Product }) {
-    const { addItem } = useCart();
     const { isInWishlist, toggle } = useWishlist();
     const { showToast } = useToast();
-    const router = useRouter();
     const wishlisted = isInWishlist(product.id);
-
-    function handleAddToCart(e: React.MouseEvent) {
-        e.preventDefault();
-        e.stopPropagation();
-        addItem({
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            priceNum: product.priceNum,
-            image: product.mainImage,
-            subtitle: product.category,
-            gstRate: product.gstRate,
-        });
-        showToast({ type: "cart", message: "Added to Cart", subMessage: product.name });
-        router.push("/cart");
-    }
 
     function handleToggleWishlist(e: React.MouseEvent) {
         e.preventDefault();
@@ -161,22 +141,10 @@ function ProductCard({ product }: { product: Product }) {
                 </div>
 
                 {/* Buttons */}
-                <div className="flex items-center gap-1.5 md:gap-2 mt-0.5 md:mt-1">
-                    <button
-                        onClick={handleAddToCart}
-                        className="flex-1 flex items-center justify-center gap-1 md:gap-2 py-2 md:py-2.5 bg-[#C9A84C] text-white text-[9px] md:text-[11px] font-semibold uppercase tracking-wider rounded-md hover:bg-[#b8963e] transition-colors duration-200"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="md:w-[14px] md:h-[14px]">
-                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                            <line x1="3" y1="6" x2="21" y2="6" />
-                            <path d="M16 10a4 4 0 0 1-8 0" />
-                        </svg>
-                        <span className="hidden sm:inline">Add to Cart</span>
-                        <span className="sm:hidden">Add</span>
-                    </button>
+                <div className="mt-0.5 md:mt-1">
                     <Link
                         href={`/collections/${product.id}`}
-                        className="px-2.5 md:px-4 py-2 md:py-2.5 border-2 border-[#C9A84C] text-[#C9A84C] text-[9px] md:text-[11px] font-semibold uppercase tracking-wider rounded-md hover:bg-[#C9A84C] hover:text-white transition-all duration-200 no-underline text-center"
+                        className="flex items-center justify-center w-full py-2 md:py-2.5 bg-[#C9A84C] text-white text-[9px] md:text-[11px] font-semibold uppercase tracking-wider rounded-md hover:bg-[#b8963e] transition-colors duration-200 no-underline text-center"
                     >
                         View
                     </Link>
