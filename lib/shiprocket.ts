@@ -471,10 +471,10 @@ export async function checkServiceability(p: {
 
 // Map internal return reason codes to Shiprocket's accepted return_reason values
 const SHIPROCKET_RETURN_REASON: Record<string, string> = {
-    DAMAGED:       "Both product and shipping box damaged",
-    WRONG_ITEM:    "Wrong product shipped",
-    QUALITY_ISSUE: "Quality issue",
-    CHANGED_MIND:  "Bought by Mistake",
+    DAMAGED:       "Item is damaged",
+    WRONG_ITEM:    "Received wrong item",
+    QUALITY_ISSUE: "Quality not as expected",
+    CHANGED_MIND:  "Changed my mind",
     OTHER:         "Other",
 };
 
@@ -571,7 +571,6 @@ export async function createReturnWithQC(p: {
             units: Math.max(1, Math.round(item.units)),
             selling_price: Math.max(0, item.sellingPrice),
             discount: 0,
-            // Always include return_reason; fall back to "Other" when not supplied
             return_reason: SHIPROCKET_RETURN_REASON[p.returnReason ?? ""] ?? "Other",
             // Only enable QC when an image is available — Shiprocket requires both
             // qc_product_name AND qc_product_image; omitting either causes a 400.
