@@ -11,7 +11,6 @@ const quickLinks = [
 const infoLinks = [
     { label: "Shipping & Returns", href: "/shipping" },
     { label: "Privacy Policy", href: "/privacy" },
-    { label: "International Shipping", href: "/international-shipping" },
     { label: "FAQs & Support", href: "/faq" },
     { label: "Terms of Service", href: "/terms" },
 ];
