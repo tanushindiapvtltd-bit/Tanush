@@ -414,7 +414,80 @@ export default function ProductDetailPage() {
                                 {inWishlist ? "♥ Added to Wishlist" : "Add to Wishlist"}
                             </button>
 
-
+                            {/* Service / Trust Badges */}
+                            <div className="flex items-stretch gap-0 mb-6 rounded-xl overflow-hidden" style={{ border: "1px solid #e8e0cc" }}>
+                                {[
+                                    {
+                                        label: "Free Delivery",
+                                        sub: "On all orders",
+                                        icon: (
+                                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                                                <path d="M1 3h15v13H1z" fill="#c9a84c" opacity={0.15} rx="2" />
+                                                <path d="M16 8h4l3 3v5h-7V8z" fill="#c9a84c" opacity={0.15} />
+                                                <rect x="1" y="3" width="15" height="13" rx="2" stroke="#c9a84c" strokeWidth={1.6} fill="none" />
+                                                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" stroke="#c9a84c" strokeWidth={1.6} fill="none" />
+                                                <circle cx="5.5" cy="18.5" r="2.5" stroke="#c9a84c" strokeWidth={1.6} fill="#fffbf2" />
+                                                <circle cx="18.5" cy="18.5" r="2.5" stroke="#c9a84c" strokeWidth={1.6} fill="#fffbf2" />
+                                                <circle cx="5.5" cy="18.5" r="1" fill="#c9a84c" />
+                                                <circle cx="18.5" cy="18.5" r="1" fill="#c9a84c" />
+                                            </svg>
+                                        ),
+                                    },
+                                    {
+                                        label: "3 Days Return",
+                                        sub: "Easy returns",
+                                        icon: (
+                                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                                                <circle cx="12" cy="12" r="9" fill="#c9a84c" opacity={0.1} />
+                                                <path d="M3.51 15a9 9 0 102.13-9.36L1 10" stroke="#c9a84c" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+                                                <polyline points="1 4 1 10 7 10" stroke="#c9a84c" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+                                                <polyline points="12 7 12 12 16 14" stroke="#c9a84c" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        ),
+                                    },
+                                    {
+                                        label: "Pay on Delivery",
+                                        sub: "Cash / UPI",
+                                        icon: (
+                                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                                                <rect x="1" y="4" width="22" height="16" rx="3" fill="#c9a84c" opacity={0.1} />
+                                                <rect x="1" y="4" width="22" height="16" rx="3" stroke="#c9a84c" strokeWidth={1.6} />
+                                                <path d="M1 10h22" stroke="#c9a84c" strokeWidth={1.6} />
+                                                <rect x="4" y="14" width="5" height="2" rx="0.5" fill="#c9a84c" opacity={0.5} />
+                                                <circle cx="18" cy="15" r="2" stroke="#c9a84c" strokeWidth={1.3} fill="none" />
+                                                <path d="M17.25 15h1.5M18 14.25v1.5" stroke="#c9a84c" strokeWidth={1} strokeLinecap="round" />
+                                            </svg>
+                                        ),
+                                    },
+                                ].map((badge, i) => (
+                                    <div
+                                        key={i}
+                                        className="flex flex-col items-center justify-center gap-2.5 flex-1 py-5 px-3 transition-colors duration-200"
+                                        style={{
+                                            background: "#fffcf5",
+                                            borderRight: i < 2 ? "1px solid #e8e0cc" : "none",
+                                        }}
+                                        onMouseEnter={(e) => (e.currentTarget.style.background = "#fff8ea")}
+                                        onMouseLeave={(e) => (e.currentTarget.style.background = "#fffcf5")}
+                                    >
+                                        <div
+                                            className="flex items-center justify-center rounded-full"
+                                            style={{
+                                                width: 44,
+                                                height: 44,
+                                                background: "linear-gradient(145deg, #fdf6e3, #f5ead0)",
+                                                boxShadow: "0 2px 8px rgba(201,168,76,0.12), inset 0 1px 0 rgba(255,255,255,0.7)",
+                                            }}
+                                        >
+                                            {badge.icon}
+                                        </div>
+                                        <div className="flex flex-col items-center gap-0.5">
+                                            <span className="text-[11px] font-bold tracking-[0.04em] text-center leading-tight" style={{ color: "#1a1a1a" }}>{badge.label}</span>
+                                            <span className="text-[9px] tracking-[0.04em] text-center" style={{ color: "#a09880" }}>{badge.sub}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
 
                             {/* Product Details accordion */}
                             <div style={{ borderTop: "1px solid #e8e3db" }}>
