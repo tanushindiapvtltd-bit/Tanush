@@ -37,6 +37,7 @@ interface Product {
     colors: ColorVariant[];
     sku: string;
     gstRate: number;
+    sizes: string[];
     avgRating?: number;
     reviewCount?: number;
 }
@@ -96,7 +97,7 @@ export default function ProductDetailPage() {
     const [canReview, setCanReview] = useState(false);
 
     const [activeImage, setActiveImage] = useState(0);
-    const [selectedSize, setSelectedSize] = useState("2.4");
+    const [selectedSize, setSelectedSize] = useState("");
     const [selectedColorIndex, setSelectedColorIndex] = useState<number | null>(null);
     const [activeColorImageIndex, setActiveColorImageIndex] = useState(0);
     const [detailsOpen, setDetailsOpen] = useState(false);
@@ -122,6 +123,18 @@ export default function ProductDetailPage() {
                 if (!r.ok) { setProductLoading(false); return; }
                 const data = await r.json();
                 setProduct(data);
+
+                // Set default selected size from product sizes
+                const colors = Array.isArray(data.colors) ? data.colors : [];
+                const pSizes = Array.isArray(data.sizes) && data.sizes.length > 0 
+                    ? data.sizes 
+                    : (colors.length > 0 && colors[0]?.sizes ? colors[0].sizes : defaultSizes);
+                
+                if (pSizes.length > 0) {
+                    const defaultSize = pSizes.find((s: string) => s === "2-4" || s === "2.4") || pSizes[0] || "";
+                    setSelectedSize(defaultSize);
+                }
+
                 // Fetch related products
                 const relRes = await fetch(`/api/products?category=${data.categoryKey}`);
                 if (relRes.ok) {
@@ -262,7 +275,11 @@ export default function ProductDetailPage() {
     const selectedColor = selectedColorIndex !== null ? colors[selectedColorIndex] ?? null : null;
     const activeColorImage = selectedColor?.image || "";
     const activeThumb = activeColorImage || (product.thumbs[activeImage] ?? product.mainImage);
-    const activeSizes = selectedColor ? selectedColor.sizes : (colors.length > 0 ? colors[0].sizes : defaultSizes);
+    const activeSizes = selectedColor?.sizes && selectedColor.sizes.length > 0
+        ? selectedColor.sizes
+        : (Array.isArray(product.sizes) && product.sizes.length > 0
+            ? product.sizes
+            : (colors.length > 0 && colors[0]?.sizes && colors[0].sizes.length > 0 ? colors[0].sizes : defaultSizes));
     const inWishlist = isInWishlist(product.id);
     const variantImages = selectedColor
         ? Array.from(new Set([selectedColor.image, ...(selectedColor.images || [])])).filter(Boolean) as string[]
@@ -392,9 +409,22 @@ export default function ProductDetailPage() {
                                             <button
                                                 key={ci}
                                                 onClick={() => {
-                                                    setSelectedColorIndex(ci === selectedColorIndex ? null : ci);
+                                                    const nextColorIndex = ci === selectedColorIndex ? null : ci;
+                                                    setSelectedColorIndex(nextColorIndex);
+                                                    
                                                     // Reset size when color changes
-                                                    setSelectedSize(c.sizes[0] ?? "");
+                                                    const nextColor = nextColorIndex !== null ? colors[nextColorIndex] : null;
+                                                    const nextSizes = nextColor?.sizes && nextColor.sizes.length > 0
+                                                        ? nextColor.sizes
+                                                        : (Array.isArray(product.sizes) && product.sizes.length > 0
+                                                            ? product.sizes
+                                                            : defaultSizes);
+                                                    
+                                                    if (nextSizes.length > 0) {
+                                                        const defaultSize = nextSizes.find((s: string) => s === "2-4" || s === "2.4") || nextSizes[0] || "";
+                                                        setSelectedSize(defaultSize);
+                                                    }
+                                                    
                                                     // Reset color image index to first image
                                                     setActiveColorImageIndex(0);
                                                 }}
