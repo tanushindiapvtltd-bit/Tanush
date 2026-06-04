@@ -7,6 +7,7 @@ import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { useCart } from "@/lib/cartContext";
+import { compressImage } from "@/lib/imageCompressor";
 
 declare global {
     interface Window {
@@ -157,8 +158,9 @@ export default function OrderDetailPage() {
         setUploadingProof(true);
         setReturnError("");
         try {
+            const compressedFile = await compressImage(file);
             const fd = new FormData();
-            fd.append("file", file);
+            fd.append("file", compressedFile);
             const res = await fetch("/api/upload/return", { method: "POST", body: fd });
             const data = await res.json();
             if (!res.ok) { setReturnError(data.error ?? "Upload failed"); return; }

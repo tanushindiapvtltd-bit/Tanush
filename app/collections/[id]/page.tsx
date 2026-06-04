@@ -10,6 +10,7 @@ import Footer from "@/components/layout/Footer";
 import { useCart } from "@/lib/cartContext";
 import { useWishlist } from "@/lib/wishlistContext";
 import { useToast } from "@/lib/toastContext";
+import { compressImage } from "@/lib/imageCompressor";
 
 interface ColorVariant {
     name: string;
@@ -163,11 +164,18 @@ export default function ProductDetailPage() {
         return { stars: star, count, pct: reviews.length > 0 ? Math.round((count / reviews.length) * 100) : 0 };
     });
 
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        setReviewImage(file);
-        setReviewImagePreview(URL.createObjectURL(file));
+        try {
+            const compressed = await compressImage(file);
+            setReviewImage(compressed);
+            setReviewImagePreview(URL.createObjectURL(compressed));
+        } catch {
+            // Fallback to original file if compression fails
+            setReviewImage(file);
+            setReviewImagePreview(URL.createObjectURL(file));
+        }
     };
 
     const handleReviewSubmit = async (e: React.FormEvent) => {

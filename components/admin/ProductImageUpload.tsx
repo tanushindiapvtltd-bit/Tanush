@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useRef, useState } from "react";
+import { compressImage } from "@/lib/imageCompressor";
 
 // ── Single image uploader ─────────────────────────────────────────────────
 
@@ -21,8 +22,9 @@ export function ImageUploader({ label, value, onChange, required }: ImageUploade
         setError("");
         setUploading(true);
         try {
+            const compressedFile = await compressImage(file);
             const fd = new FormData();
-            fd.append("file", file);
+            fd.append("file", compressedFile);
             const res = await fetch("/api/upload/product", { method: "POST", body: fd });
             const data = await res.json();
             if (!res.ok) { setError(data.error ?? "Upload failed"); return; }
@@ -134,8 +136,9 @@ export function ThumbsUploader({ label, values, onChange }: ThumbsUploaderProps)
         setError("");
         setUploading(true);
         try {
+            const compressedFile = await compressImage(file);
             const fd = new FormData();
-            fd.append("file", file);
+            fd.append("file", compressedFile);
             const res = await fetch("/api/upload/product", { method: "POST", body: fd });
             const data = await res.json();
             if (!res.ok) { setError(data.error ?? "Upload failed"); return; }
